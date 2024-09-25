@@ -13,9 +13,13 @@ import { CreateLocationDto } from './dto/create-location.dto';
 import { LocationService } from './location.service';
 import { forwardRef, Inject } from '@nestjs/common';
 
+const allowedSocketOrigin = process.env.CORS_ORIGIN || '*';
+
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: allowedSocketOrigin,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
   },
 })
 export class LocationGateway {
