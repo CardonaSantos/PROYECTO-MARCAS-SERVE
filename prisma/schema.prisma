@@ -117,6 +117,7 @@ model EntregaStock {
 
   creadoEn     DateTime                @default(now())
   actualizadoEn DateTime               @updatedAt
+  total_pagado Int//NUEVO PARA SABER CUANTO FUE EL TOTAL DE LA ENTREGA
 }
 
 model EntregaStockProducto {

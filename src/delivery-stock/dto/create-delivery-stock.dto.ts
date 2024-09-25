@@ -5,6 +5,9 @@ export class CreateDeliveryStockDto {
   @IsNotEmpty()
   proveedorId: number; // ID del proveedor
 
+  @IsNumber()
+  total_pagado: number;
+
   @IsArray()
   @IsNotEmpty()
   productos: Array<{

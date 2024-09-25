@@ -12,6 +12,76 @@ import { PrismaService } from 'src/prisma.service';
 export class StockService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // async addStock(createStockDto: CreateStockDto) {
+  //   console.log('Creando stock....');
+
+  //   const { productos, proveedorId } = createStockDto;
+  //   console.log('Los datos recibidos son: ', proveedorId, productos);
+
+  //   try {
+  //     return await this.prisma.$transaction(async (prisma) => {
+  //       let total_pagado = 0;
+  //       for (const { productoId, cantidad, costoUnitario } of productos) {
+  //         total_pagado = cantidad * costoUnitario;
+  //       }
+
+  //       // Crear el registro de entrega de stock
+  //       const entrega = await prisma.entregaStock.create({
+  //         data: {
+  //           proveedorId,
+  //           total_pagado,
+  //           productos: {
+  //             create: productos.map(
+  //               ({ productoId, cantidad, costoUnitario }) => ({
+  //                 productoId,
+  //                 cantidad,
+  //                 costoUnitario,
+  //               }),
+  //             ),
+  //           },
+  //         },
+  //       });
+
+  //       // Actualizar el stock de cada producto
+  //       for (const { productoId, cantidad, costoUnitario } of productos) {
+  //         const existingStock = await prisma.stock.findUnique({
+  //           where: { productoId },
+  //         });
+
+  //         if (existingStock) {
+  //           // Si ya existe el stock, actualizamos
+  //           await prisma.stock.update({
+  //             where: { productoId },
+  //             data: {
+  //               cantidad: {
+  //                 increment: cantidad,
+  //               },
+  //               costoTotal: {
+  //                 increment: cantidad * costoUnitario,
+  //               },
+  //             },
+  //           });
+  //         } else {
+  //           // Si no existe, creamos el stock inicial
+  //           await prisma.stock.create({
+  //             data: {
+  //               productoId,
+  //               cantidad,
+  //               proveedorId,
+  //               costoTotal: cantidad * costoUnitario,
+  //             },
+  //           });
+  //         }
+  //       }
+
+  //       return entrega;
+  //     });
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new InternalServerErrorException('Error al añadir stock');
+  //   }
+  // }
+
   async addStock(createStockDto: CreateStockDto) {
     console.log('Creando stock....');
 
@@ -20,10 +90,18 @@ export class StockService {
 
     try {
       return await this.prisma.$transaction(async (prisma) => {
+        let total_pagado = 0;
+
+        // Sumar el costo total de cada producto entregado
+        for (const { productoId, cantidad, costoUnitario } of productos) {
+          total_pagado += cantidad * costoUnitario; // Acumular el costo total
+        }
+
         // Crear el registro de entrega de stock
         const entrega = await prisma.entregaStock.create({
           data: {
             proveedorId,
+            total_pagado, // Total pagado acumulado de todos los productos
             productos: {
               create: productos.map(
                 ({ productoId, cantidad, costoUnitario }) => ({

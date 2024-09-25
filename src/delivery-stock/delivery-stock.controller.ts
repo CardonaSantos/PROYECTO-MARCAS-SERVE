@@ -22,8 +22,8 @@ export class DeliveryStockController {
   }
 
   @Get()
-  findAll() {
-    return this.deliveryStockService.findAll();
+  async findAll() {
+    return await this.deliveryStockService.findAll();
   }
 
   @Get(':id')

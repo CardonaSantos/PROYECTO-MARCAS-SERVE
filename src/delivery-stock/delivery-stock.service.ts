@@ -12,8 +12,23 @@ export class DeliveryStockService {
     console.log('hola');
   }
 
-  findAll() {
-    return `This action returns all deliveryStock`;
+  async findAll() {
+    try {
+      const stockDeliveryRegist = await this.prisma.entregaStock.findMany({
+        include: {
+          productos: {
+            include: {
+              producto: true,
+            },
+          },
+          proveedor: true,
+        },
+      });
+      return stockDeliveryRegist;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException('Error al pedir registros');
+    }
   }
 
   findOne(id: number) {
