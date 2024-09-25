@@ -18,7 +18,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const port = process.env.PORT || 3000;
-  const allowedOrigins = process.env.CORS_ORIGIN || '*'; // Variable para definir el origen permitido
+  const allowedOrigins = process.env.CORS_ORIGIN; // Variable para definir el origen permitido
 
   const app = await NestFactory.create(AppModule);
 
