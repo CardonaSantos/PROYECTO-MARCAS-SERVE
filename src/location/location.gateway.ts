@@ -107,6 +107,7 @@ export class LocationGateway {
         'Actualizando anterior registro de ubicacion de los usuarios...',
       );
       console.log('EL ID DEL REGISTRO ANTERIOR ES:  ', existingLocation.id);
+      console.log('EL registro con info del user es: ', existingLocation);
 
       console.log('==================>');
 

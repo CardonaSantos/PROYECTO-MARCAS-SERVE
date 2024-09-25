@@ -37,6 +37,15 @@ export class LocationService {
   async findLocationByUserId(usuarioId: number) {
     return this.prisma.ubicacion.findFirst({
       where: { usuarioId },
+      include: {
+        usuario: {
+          select: {
+            nombre: true,
+            id: true,
+            rol: true,
+          },
+        },
+      },
     });
   }
 
