@@ -13,7 +13,8 @@ import { CreateLocationDto } from './dto/create-location.dto';
 import { LocationService } from './location.service';
 import { forwardRef, Inject } from '@nestjs/common';
 
-const allowedSocketOrigin = process.env.CORS_ORIGIN;
+// const allowedSocketOrigin = process.env.CORS_ORIGIN;
+const allowedSocketOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000'; // Asegúrate de que esto incluya tu dominio real
 
 @WebSocketGateway({
   cors: {
@@ -66,6 +67,8 @@ export class LocationGateway {
     } else {
       console.log(`Cliente conectado ${client.id} Usuario ID NaN`);
     }
+
+    console.log('Usuario conectado..');
 
     this.updateAdmins(); // Notificar después de la conexión
   }
