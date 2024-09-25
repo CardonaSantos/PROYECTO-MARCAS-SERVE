@@ -21,9 +21,8 @@ async function bootstrap() {
 
   // Configuración de CORS para permitir solicitudes de tu dominio
   app.enableCors({
-    origin: 'https://frontend-ui-so-production.up.railway.app', // Cambia esto por el dominio que necesites
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Si necesitas enviar cookies o cabeceras de autorización
+    origin: 'https://frontend-ui-so-production.up.railway.app',
+    credentials: true,
   });
 
   await app.listen(port);
