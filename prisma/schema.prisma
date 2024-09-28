@@ -15,24 +15,6 @@ datasource db {
 
 
 
-model Usuario {
-  id                    Int              @id @default(autoincrement())
-  nombre                String
-  correo                String           @unique
-  contrasena            String
-  rol                   Rol
-  ubicaciones           Ubicacion[]
-  citas                 Cita[]           @relation("CitasUsuario")
-  ventas                Venta[]
-  solicitudesDescuento  SolicitudDescuento[]
-  notificacionesEnviadas Notificacion[]  @relation("NotificacionesEnviadas")
-  notificacionesRecibidas Notificacion[] @relation("NotificacionesRecibidas")
-  registrosAsistencia   Asistencia[]
-
-  creadoEn              DateTime         @default(now())
-  actualizadoEn         DateTime         @updatedAt
-}
-
 model Ubicacion {
   id        Int      @id @default(autoincrement())
   latitud   Float
@@ -41,34 +23,6 @@ model Ubicacion {
   usuario   Usuario  @relation(fields: [usuarioId], references: [id])
   usuarioId Int
 }
-
-model Cliente {
-  id                   Int                 @id @default(autoincrement())
-  nombre               String
-  correo               String              @unique
-  telefono             String
-  direccion            String
-  ventas               Venta[]
-  citas                Cita[]
-  solicitudesDescuento SolicitudDescuento[]
-  descuentos           Descuento[]         // Relación con los descuentos
-  creadoEn             DateTime            @default(now())
-  actualizadoEn        DateTime            @updatedAt
-}
-
-model Cita {
-  id           Int      @id @default(autoincrement())
-  inicio       DateTime
-  fin          DateTime?
-  activa       Boolean  @default(true)
-  vendedor     Usuario  @relation("CitasUsuario", fields: [usuarioId], references: [id])
-  usuarioId    Int
-  cliente      Cliente  @relation(fields: [clienteId], references: [id])
-  clienteId    Int
-  reporte      String?
-  venta        Venta?
-}
-
 
 
 
@@ -95,7 +49,6 @@ model Producto {
   creadoEn    DateTime           @default(now())
   actualizadoEn DateTime         @updatedAt
 }
-
 
 model ProductoCategoria {
   id          Int        @id @default(autoincrement())
@@ -130,7 +83,6 @@ model EntregaStockProducto {
   costoUnitario Float      // Costo por unidad de este producto en esta entrega
 }
 
-
 model Stock {
   id          Int       @id @default(autoincrement())
   producto    Producto   @relation(fields: [productoId], references: [id], onDelete: Cascade)
@@ -141,7 +93,6 @@ model Stock {
   costoTotal  Float      // Costo total de adquisición de todos los productos en stock  creadoEn    DateTime   @default(now())
   actualizadoEn DateTime @updatedAt
 }
-
 
 model Proveedor {
   id          Int       @id @default(autoincrement())
@@ -158,21 +109,6 @@ model Proveedor {
 
 
 
-model Venta {
-  id           Int      @id @default(autoincrement())
-  monto        Float//EL TOTAL SIN EL DESCUENTO
-  montoConDescuento Float//EL TOTAL PERO CON EL DESCUENTO 
-  descuento    Int? //NUEVO A APLICAR |PUEDE SER OPCIONAL
-  metodoPago   MetodoPago// UN ENUM DE LOS METODOS DIPONIBLES
-  timestamp    DateTime @default(now())
-  vendedor     Usuario  @relation(fields: [usuarioId], references: [id])
-  usuarioId    Int
-  cliente      Cliente  @relation(fields: [clienteId], references: [id])
-  clienteId    Int
-  cita         Cita?    @relation(fields: [citaId], references: [id])//si se realizó en una cita
-  citaId       Int?     @unique
-  productos    VentaProducto[]  // Relación a la tabla intermedia VentaProducto
-}
 
 model VentaProducto {
   id          Int      @id @default(autoincrement())
@@ -235,6 +171,112 @@ model Asistencia {
   creadoEn        DateTime  @default(now())
 }
 
+//-----------------------------------------------
+model Visita {
+  id            Int      @id @default(autoincrement())
+  inicio        DateTime
+  fin           DateTime?
+  vendedor      Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId     Int
+  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  clienteId     Int
+  observaciones String?
+  venta         Venta?    // Ya no necesita `fields` y `references` aquí
+  ventaId       Int?      @unique
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+}
+
+model Venta {
+  id                 Int      @id @default(autoincrement())
+  monto              Float
+  montoConDescuento  Float
+  descuento          Int?
+  metodoPago         MetodoPago
+  timestamp          DateTime  @default(now())
+  vendedor           Usuario   @relation(fields: [usuarioId], references: [id])
+  usuarioId          Int
+  cliente            Cliente   @relation(fields: [clienteId], references: [id])
+  clienteId          Int
+  visita             Visita?   @relation(fields: [visitaId], references: [id]) // Mantén fields y references aquí
+  visitaId           Int?      @unique
+  productos          VentaProducto[]
+}
+
+
+
+
+model Prospecto {
+  id                  Int              @id @default(autoincrement())
+  inicio              DateTime         @default(now()) // Se establece automáticamente al crear el prospecto
+  fin                 DateTime?        // Se establece cuando se finaliza el prospecto
+  vendedor            Usuario          @relation("ProspectosVendedor", fields: [usuarioId], references: [id])
+  usuarioId           Int
+  cliente             Cliente?         @relation(fields: [clienteId], references: [id]) // Relación opcional con cliente
+  clienteId           Int?
+  nombreCompleto      String           // Agregado para capturar el nombre completo
+  empresaTienda       String           // Agregado para capturar el nombre de la empresa o tienda
+  telefono            String?          // Mapeado desde el formulario, opcional
+  correo              String?          // Mapeado desde el formulario, opcional
+  direccion           String?          // Dirección del negocio o lugar visitado
+  municipio           String?          // Opcional
+  departamento        String?          // Opcional
+  tipoCliente         TipoCliente?     // Mapeado desde tipoCliente en el formulario
+  categoriasInteres   String[]         // Mapeado desde el formulario
+  volumenCompra       String?          // Mapeado desde el formulario, opcional
+  presupuestoMensual  String?          // Mapeado desde el formulario, opcional
+  preferenciaContacto String?          // Mapeado desde el formulario, opcional
+  comentarios         String?          // Comentarios u observaciones del prospecto
+  creadoEn            DateTime         @default(now()) // Se establece automáticamente
+  actualizadoEn       DateTime         @updatedAt       // Se actualiza automáticamente
+  estado              EstadoProspecto   @default(EN_PROSPECTO) // Usar solo el valor sin el nombre del enum
+}
+
+enum EstadoProspecto {
+  EN_PROSPECTO
+  FINALIZADO
+  CERRADO
+}
+
+
+
+model Cliente {
+  id                   Int                 @id @default(autoincrement())
+  nombre               String
+  correo               String              @unique
+  telefono             String
+  direccion            String
+  ventas               Venta[]
+  solicitudesDescuento SolicitudDescuento[]
+  descuentos           Descuento[]         // Relación con los descuentos
+  prospectos           Prospecto[]         // Relación con Prospecto
+
+  creadoEn             DateTime            @default(now())
+  actualizadoEn        DateTime            @updatedAt
+    visitas    Visita[] // Relación con el modelo Visita
+}
+
+model Usuario {
+  id                    Int              @id @default(autoincrement())
+  nombre                String
+  correo                String           @unique
+  contrasena            String
+  rol                   Rol
+  ubicaciones           Ubicacion[]
+  ventas                Venta[]
+  solicitudesDescuento  SolicitudDescuento[]
+  notificacionesEnviadas Notificacion[]  @relation("NotificacionesEnviadas")
+  notificacionesRecibidas Notificacion[] @relation("NotificacionesRecibidas")
+  registrosAsistencia   Asistencia[]
+  prospectos            Prospecto[]      @relation("ProspectosVendedor") // Relación con Prospecto
+
+  creadoEn              DateTime         @default(now())
+  actualizadoEn         DateTime         @updatedAt
+
+   visitas    Visita[] // Relación con el modelo Visita
+}
+
+
 
 enum Rol {
   ADMIN
@@ -242,8 +284,35 @@ enum Rol {
 }
 
 
+
+
 enum MetodoPago {
   CONTADO
   TARJETA
   TRANSFERENCIA_BANCO
+}
+// Enums añadidos
+   
+enum TipoCliente {
+  Minorista
+  Mayorista
+  Boutique
+  TiendaEnLinea
+  ClienteIndividual
+}
+
+enum ActividadNegocio {
+  VENTA_ROPA
+  VENTA_COMIDA
+  SERVICIO_TECNICO
+  CONSULTORIA
+  OTRO
+}
+
+enum NivelInteres {
+  MUY_BAJO
+  BAJO
+  MODERADO
+  ALTO
+  MUY_ALTO
 }

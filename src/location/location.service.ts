@@ -43,10 +43,71 @@ export class LocationService {
             nombre: true,
             id: true,
             rol: true,
+            // Incluye prospectos aquí
+            prospectos: {
+              take: 1, // Devuelve solo un prospecto en curso
+              where: {
+                estado: 'EN_PROSPECTO',
+                fin: null, // Solo prospectos en curso
+              },
+              select: {
+                estado: true,
+                empresaTienda: true,
+                nombreCompleto: true,
+                inicio: true,
+              },
+            },
           },
         },
       },
     });
+  }
+
+  // async findLocationByUserId(usuarioId: number) {
+  //   return this.prisma.ubicacion.findFirst({
+  //     where: { usuarioId },
+  //     include: {
+  //       usuario: {
+  //         select: {
+  //           nombre: true,
+  //           id: true,
+  //           rol: true,
+  //         },
+  //         include: {
+  //           prospectos: {
+  //             where: {
+  //               fin: null,
+  //               estado: 'EN_PROSPECTO',
+  //             },
+  //             select: {
+  //               estado: true,
+  //               empresaTienda: true,
+  //               nombreCompleto: true,
+  //               inicio: true,
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
+
+  async finUnique(id: number) {
+    try {
+      const userInfo = await this.prisma.usuario.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          nombre: true,
+          rol: true,
+        },
+      });
+      return userInfo;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException('No se encontró el usuario');
+    }
   }
 
   // location.service.ts

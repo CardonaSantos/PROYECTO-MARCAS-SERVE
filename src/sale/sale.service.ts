@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { PrismaService } from 'src/prisma.service';
@@ -44,7 +48,6 @@ export class SaleService {
         // Crear la venta y los productos relacionados
         const newSale = await prisma.venta.create({
           data: {
-            citaId: createSaleDto.citaId,
             clienteId: createSaleDto.clienteId,
             usuarioId: createSaleDto.vendedorId,
             descuento: createSaleDto.descuento || null, //nuevo para meter el descuento
@@ -91,7 +94,6 @@ export class SaleService {
     try {
       const saleRegist = await this.prisma.venta.findMany({
         include: {
-          cita: true,
           cliente: true,
           productos: { include: { producto: true } },
           vendedor: true,
@@ -116,6 +118,32 @@ export class SaleService {
       console.log(error);
       throw new NotFoundException('No se encontraron registros de ventas');
     }
+  }
+
+  async findSimpleSales() {
+    // try {
+    //   const sales = await this.prisma.venta.findMany({
+    //     where: {
+    //       prospectoId: null, // Asegúrate de que sea prospectoId si estás usando el campo específico
+    //     },
+    //     include: {
+    //       cliente: {
+    //         select: {
+    //           nombre: true,
+    //         },
+    //       },
+    //     },
+    //   });
+
+    //   console.log(sales); // Añade un log para ver qué se está devolviendo
+    //   return sales;
+    // } catch (error) {
+    //   console.log(error);
+    //   throw new InternalServerErrorException(
+    //     'No se encontraron ventas disponibles',
+    //   );
+    // }
+    console.log('Servicio sales buscando sales simples ');
   }
 
   async remove(id: number) {

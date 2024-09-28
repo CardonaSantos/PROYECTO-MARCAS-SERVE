@@ -26,7 +26,7 @@ async function bootstrap() {
 
   // Configuración de CORS para permitir solicitudes de tu dominio
   app.enableCors({
-    origin: allowedOrigins,
+    // origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   });

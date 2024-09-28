@@ -68,6 +68,18 @@ export class CustomersService {
     }
   }
 
+  async findSimple() {
+    try {
+      const oneCustomer = await this.prisma.cliente.findMany({
+        include: {},
+      });
+      return oneCustomer;
+    } catch (error) {
+      console.log(error);
+      throw new NotFoundException('Cliente no encontrado');
+    }
+  }
+
   async updateOneCustomer(id: number, updateCustomerDto: UpdateCustomerDto) {
     try {
       const customer = await this.prisma.cliente.update({

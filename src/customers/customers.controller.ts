@@ -31,6 +31,11 @@ export class CustomersController {
     return await this.customersService.findOneCustomersWithDiscount();
   }
 
+  @Get('/customer-simple')
+  async SimpleCustomers() {
+    return await this.customersService.findSimple();
+  }
+
   @Get(':id')
   findOneCustomer(@Param('id', ParseIntPipe) id: number) {
     return this.customersService.findOneCustomer(id);
@@ -44,13 +49,12 @@ export class CustomersController {
     return await this.customersService.updateOneCustomer(id, updateCustomerDto);
   }
 
+  @Delete('/delete-all')
+  async removeAllCustomers() {
+    return await this.customersService.removeAllCustomers();
+  }
   @Delete(':id')
   async remove(@Param('id', ParseIntPipe) id: number) {
     return await this.customersService.removeOneCustomer(id);
-  }
-
-  @Delete('/delete-all-customers')
-  async removeAllCustomers() {
-    return await this.customersService.removeAllCustomers();
   }
 }

@@ -15,6 +15,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { DeliveryStockModule } from './delivery-stock/delivery-stock.module';
 import { DiscountModule } from './discount/discount.module';
 import { LocationGateway } from './location/location.gateway';
+import { ProspectoModule } from './prospecto/prospecto.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { LocationGateway } from './location/location.gateway';
     CategoriesModule,
     DeliveryStockModule,
     DiscountModule,
+    ProspectoModule,
   ],
   controllers: [],
   providers: [LocationGateway],

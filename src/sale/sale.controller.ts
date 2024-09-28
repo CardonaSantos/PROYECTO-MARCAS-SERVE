@@ -28,6 +28,11 @@ export class SaleController {
     return await this.saleService.findAll();
   }
 
+  @Get('/simple-sales')
+  async findSimpleSales() {
+    return await this.saleService.findSimpleSales();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.saleService.findOne(+id);

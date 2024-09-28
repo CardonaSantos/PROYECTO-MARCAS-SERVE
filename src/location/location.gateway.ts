@@ -12,13 +12,35 @@ import { time } from 'console';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { LocationService } from './location.service';
 import { forwardRef, Inject } from '@nestjs/common';
+import { ProspectoService } from 'src/prospecto/prospecto.service';
 
 // const allowedSocketOrigin = process.env.CORS_ORIGIN;
 const allowedSocketOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000'; // Asegúrate de que esto incluya tu dominio real
 
+interface location {
+  latitud: number;
+  longitud: number;
+  usuarioId: number;
+  prospectos: Prospectos;
+}
+
+enum Estado {
+  EN_PROSPECTO = 'EN_PROSPECTO',
+  FINALIZADO = 'FINALIZADO',
+  CANCELADO = 'CANCELADO',
+}
+
+interface Prospectos {
+  estado: Estado;
+  inicio: string;
+  nombreCompleto: string;
+  empresaTienda: string;
+}
+
+//---------------------------------
 @WebSocketGateway({
   cors: {
-    origin: allowedSocketOrigin,
+    // origin: allowedSocketOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
   },
@@ -89,17 +111,55 @@ export class LocationGateway {
     this.updateAdmins(); // Notificar después de la desconexión
   }
 
+  // @SubscribeMessage('sendLocation')
+  // async handleSendLocationToAdmin(
+  //   client: Socket,
+  //   locationData: CreateLocationDto,
+  // ) {
+  //   console.log('Ubicación recibida: ', locationData);
+
+  //   // Intentar encontrar una ubicación existente para este usuario
+  //   const existingLocation = await this.locationService.findLocationByUserId(
+  //     locationData.usuarioId,
+  //   );
+
+  //   if (existingLocation) {
+  //     // Si existe, actualizar el registro
+  //     console.log(
+  //       'Actualizando anterior registro de ubicacion de los usuarios...',
+  //     );
+  //     console.log('EL ID DEL REGISTRO ANTERIOR ES:  ', existingLocation.id);
+  //     console.log('EL registro con info del user es: ', existingLocation);
+
+  //     console.log('==================>');
+
+  //     await this.locationService.updateLocation(
+  //       existingLocation.id,
+  //       locationData,
+  //     );
+  //   } else {
+  //     // Si no existe, crear una nueva ubicación
+  //     await this.locationService.createLocation(locationData);
+  //   }
+
+  //   // Enviar la ubicación solo a los administradores conectados
+  //   this.admins.forEach((socketId) => {
+  //     if (this.server.sockets.sockets.get(socketId)) {
+  //       this.server.to(socketId).emit('receiveLocation', locationData);
+  //     }
+  //   });
+  // }
+
   @SubscribeMessage('sendLocation')
-  async handleSendLocationToAdmin(
-    client: Socket,
-    locationData: CreateLocationDto,
-  ) {
+  async handleSendLocationToAdmin(client: Socket, locationData: location) {
     console.log('Ubicación recibida: ', locationData);
 
     // Intentar encontrar una ubicación existente para este usuario
     const existingLocation = await this.locationService.findLocationByUserId(
       locationData.usuarioId,
     );
+
+    let locationToSend;
 
     if (existingLocation) {
       // Si existe, actualizar el registro
@@ -115,15 +175,38 @@ export class LocationGateway {
         existingLocation.id,
         locationData,
       );
+
+      // Asigna la información completa a locationToSend
+      locationToSend = {
+        ...existingLocation,
+        latitud: existingLocation.latitud,
+        longitud: existingLocation.longitud,
+        usuario: existingLocation.usuario, // Incluye la info del usuario
+      };
     } else {
-      // Si no existe, crear una nueva ubicación
-      await this.locationService.createLocation(locationData);
+      // Si no existe, crea una nueva ubicación
+      const newLocation =
+        await this.locationService.createLocation(locationData);
+
+      const userInfo = await this.locationService.finUnique(
+        Number(locationData.usuarioId),
+      );
+
+      // Asigna la información completa a locationToSend
+      locationToSend = {
+        ...newLocation,
+        usuario: {
+          id: locationData.usuarioId,
+          nombre: userInfo?.nombre || 'Desconocido',
+          rol: userInfo?.rol || 'Desconocido',
+        },
+      };
     }
 
-    // Enviar la ubicación solo a los administradores conectados
+    // Enviar la ubicación con la información del usuario solo a los administradores conectados
     this.admins.forEach((socketId) => {
       if (this.server.sockets.sockets.get(socketId)) {
-        this.server.to(socketId).emit('receiveLocation', locationData);
+        this.server.to(socketId).emit('receiveLocation', locationToSend);
       }
     });
   }
