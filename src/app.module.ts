@@ -17,6 +17,7 @@ import { DiscountModule } from './discount/discount.module';
 import { LocationGateway } from './location/location.gateway';
 import { ProspectoModule } from './prospecto/prospecto.module';
 import { CustomerLocationModule } from './customer-location/customer-location.module';
+import { AnalitycsModule } from './analitycs/analitycs.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { CustomerLocationModule } from './customer-location/customer-location.mo
     DiscountModule,
     ProspectoModule,
     CustomerLocationModule,
+    AnalitycsModule,
   ],
   controllers: [],
   providers: [LocationGateway],
