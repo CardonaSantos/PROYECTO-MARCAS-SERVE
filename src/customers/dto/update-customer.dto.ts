@@ -1,6 +1,12 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateCustomerDto } from './create-customer.dto';
-import { IsEmail, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {
   @IsString()
@@ -17,6 +23,18 @@ export class UpdateCustomerDto extends PartialType(CreateCustomerDto) {
   telefono: string;
 
   @IsString()
-  //@IsNotEmpty()
+  @IsOptional()
   direccion: string;
+
+  @IsNumber()
+  @IsOptional()
+  municipioId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  departamentoId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  ubicacionId?: number;
 }

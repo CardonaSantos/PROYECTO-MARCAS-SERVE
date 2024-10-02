@@ -14,15 +14,61 @@ export class CustomersService {
 
   async create(createCustomerDto: CreateCustomerDto) {
     try {
+      // Crear el cliente primero
       const newCustomer = await this.prisma.cliente.create({
-        data: createCustomerDto,
+        data: {
+          nombre: createCustomerDto.nombre,
+          correo: createCustomerDto.correo,
+          direccion: createCustomerDto.direccion,
+          telefono: createCustomerDto.telefono,
+          categoriasInteres: createCustomerDto.categoriasInteres,
+          departamentoId: createCustomerDto.departamentoId,
+          municipioId: createCustomerDto.municipioId,
+          preferenciaContacto: createCustomerDto.preferenciaContacto,
+          presupuestoMensual: createCustomerDto.presupuestoMensual,
+          tipoCliente: createCustomerDto.tipoCliente,
+          volumenCompra: createCustomerDto.volumenCompra,
+          comentarios: createCustomerDto.comentarios,
+        },
       });
+
+      const { latitud, longitud } = createCustomerDto;
+
+      // Verificar si hay latitud y longitud
+      if (latitud && longitud && newCustomer) {
+        console.log(
+          'Parámetros para localización disponibles, creando registro',
+        );
+
+        // Crear la ubicación del cliente y obtener el nuevo ID
+        const newLocationCustomer = await this.prisma.ubicacionCliente.create({
+          data: {
+            latitud: latitud,
+            longitud: longitud,
+            clienteId: newCustomer.id,
+          },
+        });
+
+        // Actualizar el cliente con la ubicación creada
+        if (newLocationCustomer) {
+          console.log('Cliente disponible, actualizando con localización');
+
+          await this.prisma.cliente.update({
+            where: {
+              id: newCustomer.id,
+            },
+            data: {
+              ubicacionId: newLocationCustomer.id,
+            },
+          });
+        }
+      }
+
       return newCustomer;
     } catch (error) {
       // Manejo de errores
-      console.log(error);
-
-      throw new BadRequestException('Error el crear cliente');
+      console.error('Error al crear el cliente: ', error);
+      throw new BadRequestException('Error al crear cliente');
     }
   }
 
@@ -31,6 +77,29 @@ export class CustomersService {
       const customers = await this.prisma.cliente.findMany({
         include: {
           ventas: true,
+        },
+      });
+      return customers;
+    } catch (error) {
+      console.log(error);
+      throw new NotFoundException('No se encontraron clientes');
+    }
+  }
+
+  async findCustomerWithLocation() {
+    try {
+      const customers = await this.prisma.cliente.findMany({
+        include: {
+          ventas: true,
+          ubicacion: {
+            select: {
+              id: true,
+              latitud: true,
+              longitud: true,
+            },
+          },
+          departamento: true,
+          municipio: true,
         },
       });
       return customers;

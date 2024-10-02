@@ -88,15 +88,37 @@ export class AttendanceService {
 
   async findOne(id: number) {
     try {
-      // Usamos sólo la fecha sin la hora para comparación
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Establecemos el inicio del día
+      const startOfDay = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+          0,
+          0,
+          0,
+        ),
+      ); // Inicio del día en UTC
+      const endOfDay = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate(),
+          23,
+          59,
+          59,
+          999,
+        ),
+      ); // Fin del día en UTC
 
+      console.log('Inicio del día:', startOfDay);
+      console.log('Fin del día:', endOfDay);
       const AttendanceToday = await this.prisma.asistencia.findFirst({
         where: {
           usuarioId: id,
           fecha: {
-            equals: today.toISOString().split('T')[0] + 'T00:00:00.000Z', // Comparar solo con la fecha sin la hora
+            gte: startOfDay,
+            lte: endOfDay,
           },
           salida: null,
         },
@@ -107,7 +129,7 @@ export class AttendanceService {
 
       return AttendanceToday;
     } catch (error) {
-      console.log(error);
+      console.log('Error al buscar asistencia:', error);
       throw new InternalServerErrorException('Error al conseguir asistencias');
     }
   }

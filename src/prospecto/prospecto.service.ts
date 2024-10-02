@@ -14,19 +14,23 @@ export class ProspectoService {
   // En tu servicio prospecto.service.ts
   async create(createProspectoDto: CreateProspectoDto) {
     try {
+      // Comienza creando el prospecto sin la ubicación
       const nuevoProspecto = await this.prisma.prospecto.create({
         data: {
           nombreCompleto: createProspectoDto.nombreCompleto,
           empresaTienda: createProspectoDto.empresaTienda,
           vendedor: {
-            // Cambiar esto
             connect: { id: createProspectoDto.usuarioId }, // Conectando al vendedor por ID
           },
           telefono: createProspectoDto.telefono,
           correo: createProspectoDto.correo,
           direccion: createProspectoDto.direccion,
-          municipio: createProspectoDto.municipio,
-          departamento: createProspectoDto.departamento,
+          municipio: createProspectoDto.municipioId
+            ? { connect: { id: createProspectoDto.municipioId } }
+            : undefined, // Conectando el municipio por ID si está presente
+          departamento: createProspectoDto.departamentoId
+            ? { connect: { id: createProspectoDto.departamentoId } }
+            : undefined, // Conectando el departamento por ID si está presente
           tipoCliente: createProspectoDto.tipoCliente,
           categoriasInteres: createProspectoDto.categoriasInteres,
           volumenCompra: createProspectoDto.volumenCompra,
@@ -35,10 +39,30 @@ export class ProspectoService {
           comentarios: createProspectoDto.comentarios,
         },
       });
+
       console.log('Prospecto creado: ', nuevoProspecto);
 
+      // Si se proporcionan latitud y longitud, crear la ubicación y asociarla al prospecto
+      // Si se proporcionan latitud y longitud, crear la ubicación y asociarla al prospecto
+      if (createProspectoDto.latitud && createProspectoDto.longitud) {
+        const nuevaUbicacion = await this.prisma.ubicacionProspecto.create({
+          data: {
+            latitud: createProspectoDto.latitud,
+            longitud: createProspectoDto.longitud,
+            prospectoId: nuevoProspecto.id, // Se asigna directamente el ID del prospecto
+          },
+        });
+
+        console.log('Ubicación creada: ', nuevaUbicacion);
+
+        // Retornar prospecto con ubicación
+        return { ...nuevoProspecto, ubicacion: nuevaUbicacion };
+      }
+
+      // Retornar prospecto sin ubicación
       return nuevoProspecto;
     } catch (error) {
+      console.log(error);
       throw new Error(error);
     }
   }
@@ -55,6 +79,20 @@ export class ProspectoService {
               rol: true,
             },
           },
+
+          departamento: {
+            select: {
+              nombre: true,
+              id: true,
+            },
+          },
+          municipio: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          ubicacion: true,
         },
       });
       return prospectos;
@@ -75,6 +113,10 @@ export class ProspectoService {
           },
           fin: null,
           estado: 'EN_PROSPECTO',
+        },
+        include: {
+          departamento: true,
+          municipio: true,
         },
       });
       console.log(
@@ -103,34 +145,77 @@ export class ProspectoService {
     updateProspectoDto: UpdateProspectoDto,
   ) {
     try {
+      console.log(
+        'La data de la longitud y latitud es: ',
+        updateProspectoDto.longitud,
+        ' ',
+        updateProspectoDto.latitud,
+      );
+
       // Obtener la fecha/hora actual directamente (ya incluye la hora local del servidor)
       const fechaHoraGuatemala = new Date().toLocaleString('en-US', {
         timeZone: 'America/Guatemala',
       });
 
-      // Simplemente convertirlo a un objeto Date de JS
+      // Convertirlo a un objeto Date de JS
       const fechaHoraFin = new Date(fechaHoraGuatemala);
 
-      // Actualizar el prospecto con la fecha actual de finalización
+      let nuevaUbicacionProspectoId: number | null = null;
+
+      // Verificar si se proporcionaron latitud y longitud
+      if (updateProspectoDto.latitud && updateProspectoDto.longitud) {
+        const nuevaUbicacionProspecto =
+          await this.prisma.ubicacionProspecto.create({
+            data: {
+              latitud: updateProspectoDto.latitud,
+              longitud: updateProspectoDto.longitud,
+              prospectoId, // Asociar con el prospecto
+            },
+          });
+        console.log(
+          'La ubicación creada por la actualización de prospecto es: ',
+          nuevaUbicacionProspecto,
+        );
+        nuevaUbicacionProspectoId = nuevaUbicacionProspecto.id;
+      }
+
+      // Actualizar el prospecto
       const prospectoUpdate = await this.prisma.prospecto.update({
         where: {
           id: prospectoId,
         },
         data: {
-          ...updateProspectoDto,
-          fin: fechaHoraFin, // Registrar la fecha/hora actual en `fin`
+          nombreCompleto: updateProspectoDto.nombreCompleto,
+          empresaTienda: updateProspectoDto.empresaTienda,
+          telefono: updateProspectoDto.telefono,
+          correo: updateProspectoDto.correo,
+          direccion: updateProspectoDto.direccion,
+          tipoCliente: updateProspectoDto.tipoCliente,
+          categoriasInteres: updateProspectoDto.categoriasInteres,
+          volumenCompra: updateProspectoDto.volumenCompra,
+          presupuestoMensual: updateProspectoDto.presupuestoMensual,
+          preferenciaContacto: updateProspectoDto.preferenciaContacto,
+          comentarios: updateProspectoDto.comentarios,
+          fin: fechaHoraFin,
+          estado: updateProspectoDto.estado,
+          departamento: {
+            connect: { id: updateProspectoDto.departamentoId },
+          },
+          municipio: {
+            connect: { id: updateProspectoDto.municipioId },
+          },
+          ubicacion: nuevaUbicacionProspectoId
+            ? {
+                connect: { id: nuevaUbicacionProspectoId },
+              }
+            : undefined,
         },
       });
 
-      console.log(
-        'Desde el service, el prospecto actualizado es: ',
-        prospectoUpdate,
-      );
-
       return prospectoUpdate;
     } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException('Error al actualizar prospecto');
+      console.error('Error al actualizar el prospecto:', error);
+      throw error; // Propagar el error para que pueda ser manejado en el controlador
     }
   }
 
@@ -144,6 +229,10 @@ export class ProspectoService {
         'Error al eliminar los registros de prospectos',
       );
     }
+  }
+
+  async getUbicationesProspecto() {
+    return this.prisma.ubicacionProspecto.findMany({});
   }
 
   remove(id: number) {

@@ -26,6 +26,11 @@ export class CustomersController {
     return await this.customersService.findAllCustomers();
   }
 
+  @Get('/get-all-customers')
+  async findCustomersAll() {
+    return await this.customersService.findCustomerWithLocation();
+  }
+
   @Get('/all-customers-with-discount')
   async findAllCustomersWithDiscount() {
     return await this.customersService.findOneCustomersWithDiscount();

@@ -34,7 +34,82 @@ export class LocationService {
   }
 
   // location.service.ts
+  // async findLocationByUserId(usuarioId: number) {
+  //   const startOfDay = new Date();
+  //   startOfDay.setHours(0, 0, 0, 0); // Inicio del día
+  //   const endOfDay = new Date();
+  //   endOfDay.setHours(23, 59, 59, 999); // Fin del día
+
+  //   return this.prisma.ubicacion.findFirst({
+  //     where: { usuarioId },
+  //     include: {
+  //       usuario: {
+  //         select: {
+  //           nombre: true,
+  //           id: true,
+  //           rol: true,
+  //           prospectos: {
+  //             take: 1, // Devuelve solo un prospecto en curso
+  //             where: {
+  //               estado: 'EN_PROSPECTO',
+  //               fin: null, // Solo prospectos en curso
+  //             },
+  //             select: {
+  //               estado: true,
+  //               empresaTienda: true,
+  //               nombreCompleto: true,
+  //               inicio: true,
+  //             },
+  //           },
+  //           registrosAsistencia: {
+  //             take: 1, // Solo el último registro
+  //             where: {
+  //               AND: [
+  //                 { fecha: { gte: startOfDay, lte: endOfDay } }, // Filtra por el día actual
+  //                 { salida: null }, // Solo registros donde no ha marcado salida
+  //               ],
+  //             },
+  //             orderBy: {
+  //               entrada: 'desc', // Ordena por la última entrada
+  //             },
+  //             select: {
+  //               entrada: true,
+  //               salida: true,
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
+  // }
+
+  // location.service.ts
   async findLocationByUserId(usuarioId: number) {
+    // Definir inicio y fin del día en UTC
+    const today = new Date();
+    const startOfDay = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+        0,
+        0,
+        0,
+      ),
+    ); // Inicio del día en UTC
+    const endOfDay = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate(),
+        23,
+        59,
+        59,
+        999,
+      ),
+    ); // Fin del día en UTC
+
+    // Realizar la búsqueda de la ubicación y asociar la asistencia
     return this.prisma.ubicacion.findFirst({
       where: { usuarioId },
       include: {
@@ -43,7 +118,6 @@ export class LocationService {
             nombre: true,
             id: true,
             rol: true,
-            // Incluye prospectos aquí
             prospectos: {
               take: 1, // Devuelve solo un prospecto en curso
               where: {
@@ -55,6 +129,22 @@ export class LocationService {
                 empresaTienda: true,
                 nombreCompleto: true,
                 inicio: true,
+              },
+            },
+            registrosAsistencia: {
+              take: 1, // Solo el último registro de asistencia del día actual
+              where: {
+                AND: [
+                  { fecha: { gte: startOfDay, lte: endOfDay } }, // Filtrar por día actual en UTC
+                  { salida: null }, // Solo registros sin salida
+                ],
+              },
+              orderBy: {
+                entrada: 'desc', // Ordena por la última entrada
+              },
+              select: {
+                entrada: true,
+                salida: true,
               },
             },
           },
@@ -91,23 +181,43 @@ export class LocationService {
   //     },
   //   });
   // }
-
-  async finUnique(id: number) {
-    try {
-      const userInfo = await this.prisma.usuario.findUnique({
-        where: {
-          id,
+  async finUnique(usuarioId: number) {
+    return this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: {
+        nombre: true,
+        rol: true,
+        prospectos: {
+          take: 1, // Devuelve solo un prospecto en curso
+          where: {
+            estado: 'EN_PROSPECTO',
+            fin: null, // Solo prospectos en curso
+          },
+          select: {
+            estado: true,
+            empresaTienda: true,
+            nombreCompleto: true,
+            inicio: true,
+          },
         },
-        select: {
-          nombre: true,
-          rol: true,
+        registrosAsistencia: {
+          take: 1, // Solo el último registro de asistencia del día
+          where: {
+            fecha: {
+              gte: new Date(new Date().setHours(0, 0, 0, 0)), // Filtrar el registro de hoy
+              lte: new Date(new Date().setHours(23, 59, 59, 999)), // Hasta el final del día
+            },
+          },
+          orderBy: {
+            entrada: 'desc', // Ordenar por última entrada
+          },
+          select: {
+            entrada: true,
+            salida: true,
+          },
         },
-      });
-      return userInfo;
-    } catch (error) {
-      console.log(error);
-      throw new InternalServerErrorException('No se encontró el usuario');
-    }
+      },
+    });
   }
 
   // location.service.ts

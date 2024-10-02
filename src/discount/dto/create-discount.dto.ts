@@ -8,9 +8,5 @@ export class CreateDiscountDto {
 
   @IsNotEmpty()
   @IsInt()
-  usuarioId: number; // ID del vendedor que solicita el descuento
-
-  @IsNotEmpty()
-  @IsInt()
   clienteId: number; // ID del cliente al que se aplica el descuento
 }

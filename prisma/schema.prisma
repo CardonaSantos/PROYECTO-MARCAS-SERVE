@@ -125,7 +125,7 @@ model VentaProducto {
 model Descuento {
   id          Int      @id @default(autoincrement())
   porcentaje  Float    // Descuento en porcentaje (ej. 6.0 para un 6%)
-  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  cliente     Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId   Int
   activo      Boolean  @default(true) // Si el descuento está activo y puede ser aplicado
   creadoEn    DateTime @default(now())
@@ -142,9 +142,9 @@ model SolicitudDescuento {
   id           Int      @id @default(autoincrement())
   porcentaje   Float    // Porcentaje solicitado
   estado       EstadoSolicitud @default(PENDIENTE) // Establecer PENDIENTE como valor predeterminado
-  vendedor     Usuario  @relation(fields: [usuarioId], references: [id])
+  vendedor     Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId    Int
-  cliente      Cliente  @relation(fields: [clienteId], references: [id])
+  cliente      Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    Int
   creadoEn     DateTime @default(now())
 }
@@ -178,7 +178,7 @@ model Visita {
   fin           DateTime?
   vendedor      Usuario   @relation(fields: [usuarioId], references: [id])
   usuarioId     Int
-  cliente       Cliente   @relation(fields: [clienteId], references: [id])
+  cliente       Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId     Int
   observaciones String?
   venta         Venta?    // Ya no necesita `fields` y `references` aquí
@@ -196,13 +196,12 @@ model Venta {
   timestamp          DateTime  @default(now())
   vendedor           Usuario   @relation(fields: [usuarioId], references: [id])
   usuarioId          Int
-  cliente            Cliente   @relation(fields: [clienteId], references: [id])
+  cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId          Int
   visita             Visita?   @relation(fields: [visitaId], references: [id]) // Mantén fields y references aquí
   visitaId           Int?      @unique
   productos          VentaProducto[]
 }
-
 
 
 
@@ -212,15 +211,13 @@ model Prospecto {
   fin                 DateTime?        // Se establece cuando se finaliza el prospecto
   vendedor            Usuario          @relation("ProspectosVendedor", fields: [usuarioId], references: [id])
   usuarioId           Int
-  cliente             Cliente?         @relation(fields: [clienteId], references: [id]) // Relación opcional con cliente
+  cliente             Cliente?         @relation(fields: [clienteId], references: [id],  onDelete: Cascade) // Relación opcional con cliente
   clienteId           Int?
-  nombreCompleto      String           // Agregado para capturar el nombre completo
-  empresaTienda       String           // Agregado para capturar el nombre de la empresa o tienda
+  nombreCompleto      String?           // Agregado para capturar el nombre completo
+  empresaTienda       String?          // Agregado para capturar el nombre de la empresa o tienda
   telefono            String?          // Mapeado desde el formulario, opcional
   correo              String?          // Mapeado desde el formulario, opcional
   direccion           String?          // Dirección del negocio o lugar visitado
-  municipio           String?          // Opcional
-  departamento        String?          // Opcional
   tipoCliente         TipoCliente?     // Mapeado desde tipoCliente en el formulario
   categoriasInteres   String[]         // Mapeado desde el formulario
   volumenCompra       String?          // Mapeado desde el formulario, opcional
@@ -230,7 +227,28 @@ model Prospecto {
   creadoEn            DateTime         @default(now()) // Se establece automáticamente
   actualizadoEn       DateTime         @updatedAt       // Se actualiza automáticamente
   estado              EstadoProspecto   @default(EN_PROSPECTO) // Usar solo el valor sin el nombre del enum
+  //--RELACIONES CON UBICACIONES:
+  municipio           Municipio?       @relation(fields: [municipioId], references: [id]) // Relación con el municipio
+  municipioId         Int?
+  departamento        Departamento?    @relation(fields: [departamentoId], references: [id]) // Relación con el departamento
+  departamentoId      Int?
+  //----------------------------
+    //-- Relación uno a uno con UbicacionProspecto
+  //-- Relación uno a uno con UbicacionProspecto
+  ubicacion           UbicacionProspecto? @relation(fields: [ubicacionId], references: [id])
+  ubicacionId         Int?  @unique  // Mantener @unique aquí para relación uno a uno
+
 }
+
+model UbicacionProspecto {
+  id         Int        @id @default(autoincrement())
+  latitud    Float
+  longitud   Float
+  prospecto  Prospecto?  @relation  // Eliminar los atributos `fields` y `references`
+  prospectoId Int       // No necesita ser único aquí
+  creadoEn   DateTime   @default(now())
+}
+
 
 enum EstadoProspecto {
   EN_PROSPECTO
@@ -239,22 +257,63 @@ enum EstadoProspecto {
 }
 
 
-
 model Cliente {
-  id                   Int                 @id @default(autoincrement())
-  nombre               String
-  correo               String              @unique
-  telefono             String
-  direccion            String
-  ventas               Venta[]
-  solicitudesDescuento SolicitudDescuento[]
-  descuentos           Descuento[]         // Relación con los descuentos
-  prospectos           Prospecto[]         // Relación con Prospecto
-
-  creadoEn             DateTime            @default(now())
-  actualizadoEn        DateTime            @updatedAt
-    visitas    Visita[] // Relación con el modelo Visita
+  id                   Int                 @id @default(autoincrement())//-
+  nombre               String//-
+  correo               String              @unique//-
+  telefono             String//-
+  direccion            String              // DIRECCIÓN TIPO STRING DESCRITO//-
+  ventas               Venta[]//-
+  solicitudesDescuento SolicitudDescuento[]//(?)
+  descuentos           Descuento[]//-
+  prospectos           Prospecto[]//-
+  creadoEn             DateTime            @default(now())//-
+  actualizadoEn        DateTime            @updatedAt//-
+  visitas              Visita[]//-
+  municipio            Municipio?          @relation(fields: [municipioId], references: [id])//EN UBICACION TABLA
+  municipioId          Int?//EN UBICACION TABLA
+  departamento         Departamento?       @relation(fields: [departamentoId], references: [id])//EN UBICACION TABLA
+  departamentoId       Int?//EN UBICACION TABLA
+  ubicacion            UbicacionCliente?   @relation(name: "ClienteToUbicacionCliente")
+  ubicacionId          Int? @unique        // Clave foránea única para uno-a-uno
+  tipoCliente String?
+  categoriasInteres   String[]         // Mapeado desde el formulario
+  volumenCompra String?
+  presupuestoMensual String?
+  preferenciaContacto String?
+  comentarios String?
 }
+
+
+model UbicacionCliente {
+  id         Int      @id @default(autoincrement())
+  latitud    Float    // Latitud geográfica
+  longitud   Float    // Longitud geográfica
+  
+  cliente    Cliente? @relation(name: "ClienteToUbicacionCliente", fields: [clienteId], references: [id], onDelete: Cascade)//DELETE CASCADA CLIENTE
+  clienteId  Int?     @unique             // Clave foránea única para uno-a-uno
+}
+
+
+model Departamento {
+  id         Int         @id @default(autoincrement())
+  nombre     String      @unique
+  municipios Municipio[] // Relación con municipios
+  prospectos Prospecto[] // Relación con los prospectos
+  clientes   Cliente[]   // Relación con los clientes
+}
+
+
+model Municipio {
+  id             Int         @id @default(autoincrement())
+  nombre         String      @unique
+  departamento   Departamento @relation(fields: [departamentoId], references: [id], onDelete: Cascade)
+  departamentoId Int
+  prospectos     Prospecto[]  // Relación con los prospectos
+  clientes       Cliente[]    // Relación con los clientes
+}
+
+
 
 model Usuario {
   id                    Int              @id @default(autoincrement())
@@ -273,18 +332,13 @@ model Usuario {
   creadoEn              DateTime         @default(now())
   actualizadoEn         DateTime         @updatedAt
 
-   visitas    Visita[] // Relación con el modelo Visita
+  visitas    Visita[] // Relación con el modelo Visita
 }
-
-
 
 enum Rol {
   ADMIN
   VENDEDOR
 }
-
-
-
 
 enum MetodoPago {
   CONTADO

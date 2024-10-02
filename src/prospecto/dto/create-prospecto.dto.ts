@@ -1,13 +1,19 @@
-import { IsInt, IsOptional, IsString, IsEnum, IsArray } from 'class-validator';
-import { TipoCliente } from '@prisma/client';
-import { EstadoProspecto } from '@prisma/client';
+import {
+  IsInt,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
+import { TipoCliente, EstadoProspecto } from '@prisma/client';
 
 export class CreateProspectoDto {
   @IsString()
-  nombreCompleto: string;
+  nombreCompleto?: string;
 
   @IsString()
-  empresaTienda: string;
+  empresaTienda?: string;
 
   @IsOptional()
   @IsString()
@@ -21,13 +27,14 @@ export class CreateProspectoDto {
   @IsString()
   direccion?: string;
 
+  // Se cambian `municipio` y `departamento` a relaciones por ID:
   @IsOptional()
-  @IsString()
-  municipio?: string;
+  @IsInt() // Se valida como un número entero
+  municipioId?: number;
 
   @IsOptional()
-  @IsString()
-  departamento?: string;
+  @IsInt() // Se valida como un número entero
+  departamentoId?: number;
 
   @IsInt()
   usuarioId: number;
@@ -60,4 +67,14 @@ export class CreateProspectoDto {
   @IsOptional()
   @IsEnum(EstadoProspecto) // Agregado para validar el estado
   estado?: EstadoProspecto; // Campo nuevo para el estado
+
+  //==================>
+  // Se agregan los campos de ubicación:
+  @IsOptional()
+  @IsNumber()
+  latitud?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitud?: number;
 }

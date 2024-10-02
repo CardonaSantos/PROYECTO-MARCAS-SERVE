@@ -28,6 +28,10 @@ export class ProspectoController {
     return await this.prospectoService.findAll();
   }
 
+  @Get('/prospecto-ubicaciones')
+  async findAllUbications() {
+    return await this.prospectoService.getUbicationesProspecto();
+  }
   //VERIFICAR PROSPECTO ABIERTO Y RETORNAR PARA HACER LA VALIDACION
   @Get('/abierto/:id')
   async finLastProspect(@Param('id', ParseIntPipe) id: number) {
@@ -44,8 +48,8 @@ export class ProspectoController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProspectoDto: UpdateProspectoDto,
   ) {
-    console.log('Entrando al controller');
-    console.log('La data del prospecto es: ', updateProspectoDto);
+    console.log('Entrando al controller de actualizacion ');
+    console.log('La data del prospecto actualizado es: ', updateProspectoDto);
 
     return this.prospectoService.updateProspecto(id, updateProspectoDto);
   }
