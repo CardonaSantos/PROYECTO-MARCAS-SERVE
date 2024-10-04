@@ -20,7 +20,7 @@ model Ubicacion {
   latitud   Float
   longitud  Float
   timestamp DateTime @default(now())
-  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId Int
 }
 
@@ -94,17 +94,40 @@ model Stock {
   actualizadoEn DateTime @updatedAt
 }
 
-model Proveedor {
-  id          Int       @id @default(autoincrement())
-  nombre      String
-  correo      String    @unique
-  telefono    String
-  direccion   String?
-  productos   Stock[]   // Relación con el stock de productos
-  entregas    EntregaStock[]  // Relación con las entregas de stock
+// model Proveedor {
+//   id          Int       @id @default(autoincrement())
+//   nombre      String
+//   correo      String    @unique
+//   telefono    String
+//   direccion   String?
+//   productos   Stock[]   // Relación con el stock de productos
+//   entregas    EntregaStock[]  // Relación con las entregas de stock
 
-  creadoEn    DateTime  @default(now())
-  actualizadoEn DateTime @updatedAt
+//   creadoEn    DateTime  @default(now())
+//   actualizadoEn DateTime @updatedAt
+// }
+model Proveedor {
+  id             Int              @id @default(autoincrement())
+  nombre         String
+  correo         String           @unique
+  telefono       String
+  direccion      String?
+  razonSocial    String?
+  rfc            String?
+  nombreContacto String?
+  telefonoContacto String?
+  emailContacto  String?
+  pais           String?
+  ciudad         String?
+  codigoPostal   String?
+  latitud        Float?
+  longitud       Float?
+  activo         Boolean          @default(true)
+  notas          String?
+  productos      Stock[]
+  entregas       EntregaStock[]
+  creadoEn       DateTime         @default(now())
+  actualizadoEn  DateTime         @updatedAt
 }
 
 
@@ -154,9 +177,9 @@ model Notificacion {
   id              Int      @id @default(autoincrement())
   mensaje         String
   leido           Boolean  @default(false)
-  remitente       Usuario  @relation("NotificacionesEnviadas", fields: [remitenteId], references: [id])
+  remitente       Usuario  @relation("NotificacionesEnviadas", fields: [remitenteId], references: [id], onDelete: Cascade)
   remitenteId     Int
-  destinatario    Usuario  @relation("NotificacionesRecibidas", fields: [destinatarioId], references: [id])
+  destinatario    Usuario  @relation("NotificacionesRecibidas", fields: [destinatarioId], references: [id], onDelete: Cascade)
   destinatarioId  Int
   creadoEn        DateTime @default(now())
 }
@@ -166,7 +189,7 @@ model Asistencia {
   fecha           DateTime // Agregando un campo para la fecha específica
   entrada         DateTime
   salida          DateTime? // Puede estar en null si aún no ha salido
-  usuario         Usuario   @relation(fields: [usuarioId], references: [id])
+  usuario         Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId       Int
   creadoEn        DateTime  @default(now())
 }
@@ -176,7 +199,7 @@ model Visita {
   id            Int      @id @default(autoincrement())
   inicio        DateTime
   fin           DateTime?
-  vendedor      Usuario   @relation(fields: [usuarioId], references: [id])
+  vendedor      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId     Int
   cliente       Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId     Int
@@ -194,7 +217,7 @@ model Venta {
   descuento          Int?
   metodoPago         MetodoPago
   timestamp          DateTime  @default(now())
-  vendedor           Usuario   @relation(fields: [usuarioId], references: [id])
+  vendedor           Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId          Int
   cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId          Int
@@ -209,7 +232,7 @@ model Prospecto {
   id                  Int              @id @default(autoincrement())
   inicio              DateTime         @default(now()) // Se establece automáticamente al crear el prospecto
   fin                 DateTime?        // Se establece cuando se finaliza el prospecto
-  vendedor            Usuario          @relation("ProspectosVendedor", fields: [usuarioId], references: [id])
+  vendedor            Usuario          @relation("ProspectosVendedor", fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId           Int
   cliente             Cliente?         @relation(fields: [clienteId], references: [id],  onDelete: Cascade) // Relación opcional con cliente
   clienteId           Int?
@@ -333,6 +356,8 @@ model Usuario {
   actualizadoEn         DateTime         @updatedAt
 
   visitas    Visita[] // Relación con el modelo Visita
+  activo                Boolean          @default(true) // Campo activo para activar/desactivar al usuario
+
 }
 
 enum Rol {

@@ -1,4 +1,15 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsBoolean,
+  IsArray,
+  IsLatitude,
+  IsLongitude,
+  Length,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateProviderDto {
   @IsString()
@@ -17,19 +28,49 @@ export class CreateProviderDto {
   @IsOptional()
   direccion?: string;
 
-  // @IsString()
-  // @IsNotEmpty()
-  // nombre:string
+  @IsString()
+  @IsOptional()
+  razonSocial?: string;
+
+  @IsString()
+  @IsOptional()
+  rfc?: string;
+
+  @IsString()
+  @IsOptional()
+  nombreContacto?: string;
+
+  @IsString()
+  @IsOptional()
+  telefonoContacto?: string;
+
+  @IsEmail()
+  @IsOptional()
+  emailContacto?: string;
+
+  @IsString()
+  @IsOptional()
+  pais?: string;
+
+  @IsString()
+  @IsOptional()
+  ciudad?: string;
+
+  @IsString()
+  @IsOptional()
+  codigoPostal?: string;
+
+  @IsNumber()
+  latitud?: number;
+
+  @IsNumber()
+  longitud?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  activo?: boolean;
+
+  @IsString()
+  @IsOptional()
+  notas?: string;
 }
-
-// model Proveedor {
-//     id          Int       @id @default(autoincrement())
-//     nombre      String
-//     correo      String    @unique
-//     telefono    String
-//     direccion   String?
-//     productos   Stock[]   // Relación con el stock de productos
-
-//     creadoEn    DateTime  @default(now())
-//     actualizadoEn DateTime @updatedAt
-//   }

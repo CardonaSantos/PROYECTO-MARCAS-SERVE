@@ -1,25 +1,26 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
-import { IsEnum, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MinLength } from 'class-validator';
 import { Rol } from '@prisma/client';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
+export class UpdateUserDto {
   @IsString()
-  @IsNotEmpty()
-  nombre: string;
+  @IsOptional() // Hacemos el nombre opcional para la actualización
+  nombre?: string;
 
-  @IsNotEmpty()
   @IsString()
-  correo: string;
+  @IsOptional() // El correo también debe ser opcional
+  correo?: string;
 
-  @IsNotEmpty()
   @IsString()
   @MinLength(8)
-  contrasena: string;
+  @IsOptional() // La contraseña debe ser opcional y solo válida si se proporciona
+  contrasena?: string;
 
-  @IsNotEmpty()
-  @IsEnum(Rol) // Enum validado
-  rol: Rol;
+  @IsString()
+  @MinLength(8)
+  @IsOptional() // La contraseña actual también es opcional
+  contrasenaActual?: string;
 
-  // Aquí podrías añadir más lógica para manejar las ubicaciones
+  @IsEnum(Rol)
+  @IsOptional() // El rol puede ser opcional
+  rol?: Rol;
 }

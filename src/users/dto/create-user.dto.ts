@@ -20,7 +20,7 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsString()
   @MinLength(8)
-  contrasena: string;
+  contrasena?: string;
 
   @IsNotEmpty()
   @IsEnum(Rol) // Enum validado

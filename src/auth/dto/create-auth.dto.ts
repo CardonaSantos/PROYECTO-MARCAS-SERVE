@@ -1,5 +1,6 @@
 import { Rol } from '@prisma/client';
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsNotEmpty,
@@ -18,6 +19,9 @@ export class CreateAuthDto {
   @IsString()
   @IsNotEmpty()
   nombre: string;
+
+  @IsBoolean()
+  activo: boolean;
 
   //Si es uno de los dos enums que tenemos en prisma tablas
   @IsEnum(Rol)

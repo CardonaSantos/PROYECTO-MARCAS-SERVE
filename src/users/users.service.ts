@@ -69,17 +69,52 @@ export class UsersService {
   //LOS UPDATE BUSCAN
   async updateOneUser(id: number, updateUserDto: UpdateUserDto) {
     try {
+      // Buscar el usuario actual
+      const user = await this.prisma.usuario.findUnique({
+        where: { id: id },
+      });
+
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      // Verificar si se está intentando cambiar la contraseña
+      if (updateUserDto.contrasena && updateUserDto.contrasenaActual) {
+        // Compara la contraseña actual con la almacenada
+        const isMatch = await bcrypt.compare(
+          updateUserDto.contrasenaActual,
+          user.contrasena,
+        );
+
+        if (!isMatch) {
+          throw new Error('La contraseña actual no es correcta');
+        }
+
+        // Si la contraseña actual es correcta, encriptar la nueva
+        const hashedPassword = await bcrypt.hash(updateUserDto.contrasena, 10);
+        updateUserDto.contrasena = hashedPassword;
+      } else {
+        // Eliminar la contraseña si no hay cambios
+        delete updateUserDto.contrasena;
+      }
+
+      // Asegúrate de eliminar contrasenaActual del DTO para evitar el error
+      delete updateUserDto.contrasenaActual;
+
+      // Actualizar usuario
       const userToUpdate = await this.prisma.usuario.update({
         where: { id: id },
         data: updateUserDto,
       });
+
       return userToUpdate;
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException('No se encontraron usuarios');
+      throw new InternalServerErrorException('Error al actualizar usuario');
     }
   }
 
+  //
   async removeOneUser(id: number) {
     try {
       const userRemoved = await this.prisma.usuario.delete({

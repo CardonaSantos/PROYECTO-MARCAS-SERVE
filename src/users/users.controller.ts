@@ -28,6 +28,7 @@ export class UsersController {
   @UsePipes(new ValidationPipe())
   async create(@Body() createUserDto: CreateUserDto) {
     const NewUser = await this.usersService.createUser(createUserDto);
+    console.log(createUserDto);
 
     // return this.usersService.createUser(createUserDto);
     return await this.authService.loginUser(NewUser);
@@ -60,16 +61,19 @@ export class UsersController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return await this.usersService.updateOneUser(id, updateUserDto);
-  }
+    console.log('La data llegando es: ', updateUserDto);
+    console.log('El id del usuario es: ', id);
 
-  @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return await this.usersService.removeOneUser(id);
+    return await this.usersService.updateOneUser(id, updateUserDto);
   }
 
   @Delete('/delete-all')
   async deleteAllUSers() {
     return await this.usersService.deleteAllUsers();
+  }
+
+  @Delete(':id')
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return await this.usersService.removeOneUser(id);
   }
 }

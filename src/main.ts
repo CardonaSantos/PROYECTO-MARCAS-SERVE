@@ -34,3 +34,6 @@ async function bootstrap() {
   await app.listen(port);
 }
 bootstrap();
+
+// Ver la eliminacion de usuarios desactivados
+// ver el envio de informacion de localizacion para ver primero, si el usuario existe o no
