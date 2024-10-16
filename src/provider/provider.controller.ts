@@ -39,13 +39,13 @@ export class ProviderController {
     return await this.providerService.update(+id, updateProviderDto);
   }
 
-  @Delete(':id')
-  async removeAll() {
-    return await this.providerService.removeAll();
+  @Delete('/delete-provider/:id')
+  async remove(@Param('id', ParseIntPipe) id: string) {
+    return await this.providerService.remove(+id);
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: string) {
-    return await this.providerService.remove(+id);
+  async removeAll() {
+    return await this.providerService.removeAll();
   }
 }

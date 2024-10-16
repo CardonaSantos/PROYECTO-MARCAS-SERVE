@@ -8,6 +8,6 @@ import { PrismaService } from 'src/prisma.service';
   controllers: [LocationController],
   providers: [LocationService, LocationGateway, PrismaService],
   imports: [forwardRef(() => LocationModule)],
-  exports: [LocationService],
+  exports: [LocationService, LocationGateway],
 })
 export class LocationModule {}

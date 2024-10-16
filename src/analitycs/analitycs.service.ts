@@ -107,15 +107,18 @@ export class AnalitycsService {
       const fechaActual = new Date();
 
       // Obtener el día actual (0 es domingo, 1 es lunes, etc.)
-      const diaActual = fechaActual.getDay();
+      let diaActual = fechaActual.getDay();
 
-      // Calcular el primer día de la semana (domingo anterior o lunes)
+      // Si es domingo, ajustamos `diaActual` a 7 para que la semana comience en lunes
+      diaActual = diaActual === 0 ? 7 : diaActual;
+
+      // Calcular el primer día de la semana (lunes)
       const inicioSemana = new Date(fechaActual);
-      inicioSemana.setDate(fechaActual.getDate() - diaActual); // Retroceder al primer día de la semana
+      inicioSemana.setDate(fechaActual.getDate() - (diaActual - 1)); // Retroceder al lunes de la semana actual
 
-      // Calcular el último día de la semana (sábado o domingo)
+      // Calcular el último día de la semana (domingo)
       const finSemana = new Date(inicioSemana);
-      finSemana.setDate(inicioSemana.getDate() + 6); // Avanzar 6 días para obtener el último día de la semana
+      finSemana.setDate(inicioSemana.getDate() + 6); // Avanzar 6 días para obtener el domingo
 
       // Obtener las ventas de la semana actual
       const getVentasSemanales = await this.prisma.venta.findMany({
@@ -133,15 +136,19 @@ export class AnalitycsService {
       // Iterar sobre las ventas semanales y contar las ventas por día
       getVentasSemanales.forEach((venta) => {
         const fechaVenta = new Date(venta.timestamp);
-        const diaVenta = fechaVenta.getDay(); // Obtener el día de la semana (0 es domingo, 6 es sábado)
+
+        // Obtener el día de la semana, ajustando para que 0 sea lunes, 6 sea domingo
+        let diaVenta = fechaVenta.getDay();
+        diaVenta = diaVenta === 0 ? 6 : diaVenta - 1;
+
         ventasPorDia[diaVenta] += 1; // Sumar la venta al día correspondiente
       });
 
       // Construir el array final con el formato deseado
       const ventasSemana = ventasPorDia.map((ventas, index) => ({
         dia: new Intl.DateTimeFormat('es-ES', { weekday: 'short' }).format(
-          new Date(0, 0, index + 4),
-        ), // Genera el nombre del día (lun, mar, etc.)
+          new Date(0, 0, index + 1), // Mapear correctamente los días de lunes a domingo
+        ),
         ventas: ventas || 0, // Cantidad de ventas para ese día
       }));
 
@@ -239,22 +246,24 @@ export class AnalitycsService {
   }
 
   async getTotalVentasMontoSemana() {
-    // Obtener la fecha actual
-    const fechaActual = new Date();
-
-    // Calcular el primer día de la semana (asumiendo que la semana empieza el lunes)
-    const primerDiaSemana = new Date(
-      fechaActual.setDate(fechaActual.getDate() - fechaActual.getDay() + 1),
-    ); // Lunes de esta semana
-    primerDiaSemana.setHours(0, 0, 0, 0); // Establecer la hora al inicio del día
-
-    // Calcular el último día de la semana (domingo)
-    const ultimoDiaSemana = new Date(
-      fechaActual.setDate(primerDiaSemana.getDate() + 6),
-    ); // Domingo de esta semana
-    ultimoDiaSemana.setHours(23, 59, 59, 999); // Establecer la hora al final del día
-
     try {
+      // Obtener la fecha actual
+      const fechaActual = new Date();
+
+      // Calcular el primer día de la semana (lunes)
+      const diaSemana = fechaActual.getDay();
+      const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana; // Si es domingo (0), retroceder 6 días; sino, calcular desde lunes
+      const primerDiaSemana = new Date(
+        fechaActual.setDate(fechaActual.getDate() + diferencia),
+      );
+      primerDiaSemana.setHours(0, 0, 0, 0); // Establecer hora al inicio del día (00:00)
+
+      // Calcular el último día de la semana (domingo)
+      const ultimoDiaSemana = new Date(primerDiaSemana);
+      ultimoDiaSemana.setDate(primerDiaSemana.getDate() + 6);
+      ultimoDiaSemana.setHours(23, 59, 59, 999); // Establecer hora al final del día (23:59:59)
+
+      // Inicializar el monto total de la semana
       let montoTotalSemana = 0;
 
       // Consultar las ventas de la semana
@@ -296,6 +305,132 @@ export class AnalitycsService {
 
       throw new InternalServerErrorException(
         'Error al verificar cantidad de clientes',
+      );
+    }
+  }
+
+  //VENTAS POR MES Y SU TOTAL
+  // async getVentasMesyTotal() {
+  //   try {
+  //     const añoActual = new Date().getFullYear();
+  //     const mesActual = new Date().getMonth();
+
+  //     const inicioMes = new Date(añoActual, mesActual, 1); // Primer día del mes
+  //     const finMes = new Date(añoActual, mesActual + 1, 0); // Último día del mes
+
+  //     // Consultar todas las ventas del mes actual
+  //     const getVentasMensuales = await this.prisma.venta.findMany({
+  //       where: {
+  //         timestamp: {
+  //           gte: inicioMes,
+  //           lte: finMes,
+  //         },
+  //       },
+  //       select: {
+  //         timestamp: true,
+  //         montoConDescuento: true, // Supongo que tienes una propiedad 'total' que guarda el monto de la venta
+  //       },
+  //     });
+
+  //     // Obtener la cantidad de días del mes actual
+  //     const diasEnMes = new Date(añoActual, mesActual + 1, 0).getDate();
+
+  //     // Inicializar ventas por día y el total de ventas
+  //     const ventasPorDia = Array(diasEnMes).fill(0);
+  //     let totalVentasMes = 0; // Para sumar el monto total de las ventas del mes
+  //     let totalTransacciones = 0; // Contador de las ventas del mes
+
+  //     // Iterar sobre las ventas mensuales para llenar ventas por día y sumar los totales
+  //     getVentasMensuales.forEach((venta) => {
+  //       const fechaVenta = new Date(venta.timestamp);
+  //       const diaVenta = fechaVenta.getDate(); // Obtener el día del mes (1-31)
+  //       ventasPorDia[diaVenta - 1] += 1; // Contar una venta en ese día
+  //       totalVentasMes += venta.montoConDescuento; // Sumar el monto de la venta
+  //       totalTransacciones += 1; // Incrementar el número de transacciones
+  //     });
+
+  //     // Obtener el nombre del mes actual
+  //     const nombreMes = inicioMes.toLocaleString('es-ES', { month: 'long' });
+
+  //     // Construir el array con el formato de ventas diarias
+  //     const ventasMes = ventasPorDia.map((ventas, index) => ({
+  //       fecha: index + 1, // El día del mes (1 a 31)
+  //       ventas: ventas || 0, // Cantidad de ventas para ese día
+  //     }));
+
+  //     // Retornar el resultado con el total agregado
+  //     return {
+  //       mes: nombreMes, // Nombre del mes
+  //       totalVentas: totalVentasMes, // Monto total del mes
+  //       ventasTotales: totalTransacciones, // Cantidad total de ventas del mes
+  //       ventasPorDia: ventasMes, // Ventas diarias
+  //     };
+  //   } catch (error) {
+  //     console.error(error);
+  //     throw new InternalServerErrorException(
+  //       'Error al conseguir los registros del mes',
+  //     );
+  //   }
+  // }
+
+  async getVentasMesyTotal() {
+    try {
+      const añoActual = new Date().getFullYear();
+
+      // Array de los nombres de los meses
+      const meses = [
+        'enero',
+        'febrero',
+        'marzo',
+        'abril',
+        'mayo',
+        'junio',
+        'julio',
+        'agosto',
+        'septiembre',
+        'octubre',
+        'noviembre',
+        'diciembre',
+      ];
+
+      // Inicializamos un array para almacenar los resultados
+      const ventasPorMes = [];
+
+      // Iteramos sobre los 12 meses del año actual
+      for (let mes = 0; mes < 12; mes++) {
+        // Establecemos el inicio y fin de cada mes
+        const inicioMes = new Date(añoActual, mes, 1);
+        const finMes = new Date(añoActual, mes + 1, 0);
+
+        // Obtenemos las ventas del mes actual
+        const ventasMensuales = await this.prisma.venta.findMany({
+          where: {
+            timestamp: {
+              gte: inicioMes,
+              lte: finMes,
+            },
+          },
+        });
+
+        // Calculamos el total de ventas y el monto total generado en el mes
+        const totalVentasMes = ventasMensuales.reduce(
+          (total, venta) => total + venta.montoConDescuento,
+          0,
+        );
+
+        // Guardamos los resultados en el array de ventas por mes
+        ventasPorMes.push({
+          mes: meses[mes], // Nombre del mes
+          totalVentas: totalVentasMes, // Monto total generado
+          ventasTotales: ventasMensuales.length, // Número total de ventas
+        });
+      }
+
+      return ventasPorMes; // Retornamos el array con los resultados por mes
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(
+        'Error al conseguir los registros de ventas del año',
       );
     }
   }

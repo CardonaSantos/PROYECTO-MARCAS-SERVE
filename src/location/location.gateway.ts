@@ -79,21 +79,82 @@ export class LocationGateway {
     const userId = this.getUserIdFromClient(client);
     const role = client.handshake.query.role as string;
 
+    console.log(`Intentando conectar usuario ID: ${userId}, role: ${role}`);
     if (!isNaN(userId)) {
       if (role === 'ADMIN') {
         this.admins.set(userId, client.id);
       } else {
+        // Asegúrate que el role es EMPLOYEE para los vendedores
         this.employees.set(userId, client.id);
       }
+
       console.log(`${role} conectado: ${client.id} Usuario ID: ${userId}`);
     } else {
       console.log(`Cliente conectado ${client.id} Usuario ID NaN`);
     }
 
-    console.log('Usuario conectado..');
-
     this.updateAdmins(); // Notificar después de la conexión
   }
+
+  //PARA EMITIR EVENTOS
+  emitNotificationToAdmins(notificacion: any) {
+    this.admins.forEach((socketId) => {
+      this.server.to(socketId).emit('newNotification', notificacion);
+    });
+  }
+
+  printConnectedEmployees() {
+    console.log('Empleados conectados:', Array.from(this.employees.entries()));
+  }
+
+  // Método para emitir notificaciones a un empleado específico
+  emitNotificationToEmployee(employeeId: number, notification: any) {
+    const socketId = this.employees.get(employeeId);
+    console.log(
+      `Intentando emitir notificación al empleado ID: ${employeeId}, socketId: ${socketId}`,
+    );
+
+    this.printConnectedEmployees();
+
+    if (socketId) {
+      console.log(
+        'Emitiendo la notificación: ',
+        notification,
+        'Para el empleado con id: ',
+        employeeId,
+      );
+
+      this.server.to(socketId).emit('newNotificationToSeller', notification);
+    } else {
+      console.log(
+        `No se encontró socketId para el empleado con id: ${employeeId}`,
+      );
+    }
+  }
+
+  // emitRejectNotificationToEmployee(employeeId: number, notification: any) {
+  //   try {
+  //     const socketId = this.employees.get(employeeId); //dame el socket id del empleado con el id que te estoy pasando
+
+  //     console.log(
+  //       `Intentando emitir notificación al empleado ID: ${employeeId}, socketId: ${socketId}`,
+  //     );
+  //     this.printConnectedEmployees();
+
+  //     if (socketId) {
+  //       console.log(
+  //         'Emitiendo la notificación: ',
+  //         notification,
+  //         'Para el empleado con id: ',
+  //         employeeId,
+  //       );
+  //     }
+
+  //     this.server.to(socketId).emit('newNotificationToSeller', notification);
+  //   } catch (error) {
+  //     console.log(error);
+  //   }
+  // }
 
   handleDisconnect(client: Socket) {
     const userId = this.getUserIdFromClient(client);
@@ -110,45 +171,6 @@ export class LocationGateway {
 
     this.updateAdmins(); // Notificar después de la desconexión
   }
-
-  // @SubscribeMessage('sendLocation')
-  // async handleSendLocationToAdmin(
-  //   client: Socket,
-  //   locationData: CreateLocationDto,
-  // ) {
-  //   console.log('Ubicación recibida: ', locationData);
-
-  //   // Intentar encontrar una ubicación existente para este usuario
-  //   const existingLocation = await this.locationService.findLocationByUserId(
-  //     locationData.usuarioId,
-  //   );
-
-  //   if (existingLocation) {
-  //     // Si existe, actualizar el registro
-  //     console.log(
-  //       'Actualizando anterior registro de ubicacion de los usuarios...',
-  //     );
-  //     console.log('EL ID DEL REGISTRO ANTERIOR ES:  ', existingLocation.id);
-  //     console.log('EL registro con info del user es: ', existingLocation);
-
-  //     console.log('==================>');
-
-  //     await this.locationService.updateLocation(
-  //       existingLocation.id,
-  //       locationData,
-  //     );
-  //   } else {
-  //     // Si no existe, crear una nueva ubicación
-  //     await this.locationService.createLocation(locationData);
-  //   }
-
-  //   // Enviar la ubicación solo a los administradores conectados
-  //   this.admins.forEach((socketId) => {
-  //     if (this.server.sockets.sockets.get(socketId)) {
-  //       this.server.to(socketId).emit('receiveLocation', locationData);
-  //     }
-  //   });
-  // }
 
   @SubscribeMessage('sendLocation')
   async handleSendLocationToAdmin(client: Socket, locationData: location) {
@@ -209,72 +231,42 @@ export class LocationGateway {
       }
     });
   }
-  //   @SubscribeMessage('sendLocation')
-  // async handleSendLocationToAdmin(client: Socket, locationData: location) {
-  //   console.log('Ubicación recibida: ', locationData);
-
-  //   // Intentar encontrar una ubicación existente para este usuario
-  //   const existingLocation = await this.locationService.findLocationByUserId(
-  //     locationData.usuarioId,
-  //   );
-
-  //   let locationToSend;
-
-  //   if (existingLocation) {
-  //     // Si existe, actualizar el registro
-  //     await this.locationService.updateLocation(
-  //       existingLocation.id,
-  //       locationData,
-  //     );
-
-  //     // Obtener información actualizada del usuario con prospecto y asistencia
-  //     const userInfo = await this.locationService.finUnique(
-  //       locationData.usuarioId,
-  //     );
-
-  //     // Asigna la información completa a locationToSend
-  //     locationToSend = {
-  //       ...existingLocation,
-  //       latitud: locationData.latitud, // Actualiza la latitud/longitud recibida
-  //       longitud: locationData.longitud,
-  //       usuario: {
-  //         id: userInfo?.id || existingLocation.usuario.id,
-  //         nombre: userInfo?.nombre || existingLocation.usuario.nombre,
-  //         rol: userInfo?.rol || existingLocation.usuario.rol,
-  //         prospecto: userInfo?.prospectos[0] || null, // Incluye el prospecto
-  //         asistencia: userInfo?.registrosAsistencia[0] || null, // Incluye la asistencia
-  //       },
-  //     };
-  //   } else {
-  //     // Si no existe, crea una nueva ubicación
-  //     const newLocation = await this.locationService.createLocation(locationData);
-  //     const userInfo = await this.locationService.finUnique(
-  //       Number(locationData.usuarioId),
-  //     );
-
-  //     // Asigna la información completa a locationToSend
-  //     locationToSend = {
-  //       ...newLocation,
-  //       usuario: {
-  //         id: locationData.usuarioId,
-  //         nombre: userInfo?.nombre || 'Desconocido',
-  //         rol: userInfo?.rol || 'Desconocido',
-  //         prospecto: userInfo?.prospectos[0] || null,
-  //         asistencia: userInfo?.registrosAsistencia[0] || null,
-  //       },
-  //     };
-  //   }
-
-  //   // Enviar la ubicación con la información del usuario solo a los administradores conectados
-  //   this.admins.forEach((socketId) => {
-  //     if (this.server.sockets.sockets.get(socketId)) {
-  //       this.server.to(socketId).emit('receiveLocation', locationToSend);
-  //     }
-  //   });
-  // }
 
   private getUserIdFromClient(client: Socket): number {
     return parseInt(client.handshake.query.userId as string, 10);
+  }
+
+  @SubscribeMessage('requestDiscount')
+  async handleRequestDiscount(
+    client: Socket,
+    requestData: {
+      clienteId: number;
+      justificacion: string;
+      usuarioId: number;
+      descuentoSolicitado: number;
+      motivo: string;
+    },
+  ) {
+    console.log('Evento requestDiscount recibido con los datos:', requestData);
+
+    // Crear un registro de solicitud en la base de datos
+    await this.locationService.createSolicitud(requestData);
+    return;
+  }
+
+  //EMITIR EL REGISTRO A LOS ADMINS
+  // Emitir el registro de la solicitud de descuento a los administradores
+  emitDiscountRequestToAdmins(solicitudDescuento: any) {
+    console.log(
+      'Enviando solicitud de descuento a los administradores:',
+      solicitudDescuento,
+    );
+
+    console.log('EMITIENDO EL REGISTRO');
+
+    this.admins.forEach((socketId) => {
+      this.server.to(socketId).emit('newDiscountRequest', solicitudDescuento);
+    });
   }
 
   getTotalConnectedUsers(): number {

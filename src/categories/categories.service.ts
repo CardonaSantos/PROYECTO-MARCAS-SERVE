@@ -45,6 +45,18 @@ export class CategoriesService {
     }
   }
 
+  async findSimple() {
+    try {
+      const categories = await this.prisma.categoria.findMany({});
+      return categories;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(
+        'Error al encontrar las categoria',
+      );
+    }
+  }
+
   async findOne(id: number) {
     try {
       const category = await this.prisma.categoria.findUnique({

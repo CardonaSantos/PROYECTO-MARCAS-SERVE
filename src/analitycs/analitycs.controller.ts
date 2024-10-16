@@ -60,6 +60,11 @@ export class AnalitycsController {
     return await this.analitycsService.getTotalClientes();
   }
 
+  @Get('/get-total-month-monto')
+  async getTotalMontoMes() {
+    return await this.analitycsService.getVentasMesyTotal();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.analitycsService.findOne(+id);

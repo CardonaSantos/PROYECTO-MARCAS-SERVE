@@ -36,6 +36,7 @@ export class ProductController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateProductDto: UpdateProductDto,
   ) {
+    console.log('La data es: ', updateProductDto);
     return await this.productService.updateOneProduct(id, updateProductDto);
   }
 

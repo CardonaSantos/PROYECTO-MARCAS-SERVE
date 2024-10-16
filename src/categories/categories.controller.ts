@@ -30,6 +30,11 @@ export class CategoriesController {
     return await this.categoriesService.findAllCategories();
   }
 
+  @Get('/simple-categories')
+  async findSimpleCategories() {
+    return await this.categoriesService.findSimple();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return await this.categoriesService.findOne(+id);

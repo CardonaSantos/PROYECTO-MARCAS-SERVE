@@ -20,6 +20,37 @@ export class LocationController {
     return this.locationService.createLocation(createLocationDto);
   }
 
+  @Post('/create-discount-from-request')
+  createDiscountFromRequest(
+    @Body()
+    body: {
+      porcentaje: number;
+      clienteId: number;
+      vendedorId: number;
+      requestId: number;
+    },
+  ) {
+    const { porcentaje, clienteId, vendedorId, requestId } = body;
+    return this.locationService.createDiscountFromRequest(
+      porcentaje,
+      clienteId,
+      vendedorId,
+      requestId,
+    );
+  }
+
+  @Post('/delete-discount-regist')
+  deleteDiscountRegist(
+    @Body()
+    body: {
+      vendedorId: number;
+      requestId: number;
+    },
+  ) {
+    const { vendedorId, requestId } = body;
+    return this.locationService.deleteDiscountRegist(vendedorId, requestId);
+  }
+
   @Get()
   findAll() {
     return this.locationService.findAll();

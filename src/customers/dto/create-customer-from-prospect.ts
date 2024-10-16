@@ -7,7 +7,11 @@ import {
   IsString,
 } from 'class-validator';
 
-export class CreateCustomerDto {
+export class CreateCustomerFromProspectDto {
+  @IsNumber()
+  @IsNotEmpty()
+  prospectoId: number;
+
   @IsString()
   @IsNotEmpty()
   nombre: string;

@@ -72,6 +72,8 @@ export class ProviderService {
       const providerToDelete = await this.prisma.proveedor.delete({
         where: { id },
       });
+      console.log('El proveedor eliminado es: ', providerToDelete);
+
       return providerToDelete;
     } catch (error) {
       console.log(error);

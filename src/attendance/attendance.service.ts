@@ -6,10 +6,14 @@ import {
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 import { PrismaService } from 'src/prisma.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class AttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationsService,
+  ) {}
 
   async createCheckIn(createAttendanceDto: CreateAttendanceDto) {
     try {
@@ -41,6 +45,18 @@ export class AttendanceService {
         },
       });
 
+      const userNotification = await this.prisma.usuario.findUnique({
+        where: {
+          id: nuevaAsistencia.usuarioId,
+        },
+      });
+
+      //LLAMAR AL SERVICIO DE NOTIFICACIONES LIGADO AL GATEWAY
+      await this.notificationService.createNotification({
+        mensaje: `El usuario ${userNotification.nombre} ha registrado su entrada`,
+        remitenteId: nuevaAsistencia.usuarioId,
+      });
+
       return nuevaAsistencia;
     } catch (error) {
       console.log(error);
@@ -57,6 +73,18 @@ export class AttendanceService {
       const marcarSalida = await this.prisma.asistencia.update({
         where: { id: asistenciaId },
         data: updateAttendanceDto,
+      });
+
+      const userNotification = await this.prisma.usuario.findUnique({
+        where: {
+          id: marcarSalida.usuarioId,
+        },
+      });
+
+      //LLAMAR AL SERVICIO DE NOTIFICACIONES LIGADO AL GATEWAY
+      await this.notificationService.createNotification({
+        mensaje: `El usuario ${userNotification.nombre} ha registrado su salida`,
+        remitenteId: marcarSalida.usuarioId,
       });
       return marcarSalida;
     } catch (error) {

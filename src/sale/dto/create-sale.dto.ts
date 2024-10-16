@@ -48,7 +48,7 @@ export class CreateSaleDto {
 
   @IsOptional()
   @IsInt()
-  citaId?: number; // Opcional si está asociado a una cita
+  registroVisitaId?: number; // Opcional si está asociado a una cita
 
   @IsNotEmpty()
   @IsEnum(MetodoPago) // Enum validado

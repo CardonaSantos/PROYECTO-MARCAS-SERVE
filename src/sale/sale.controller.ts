@@ -23,14 +23,35 @@ export class SaleController {
     return await this.saleService.createSale(createSaleDto);
   }
 
+  // HACER VENTA PARA REGISTRO DE VISITA
+  @Post('/sale-for-regis')
+  async createSaleForRegist(@Body() createSaleDto: CreateSaleDto) {
+    return await this.saleService.createSaleForRegist(createSaleDto);
+  }
+
   @Get()
   async findAll() {
     return await this.saleService.findAll();
   }
 
+  @Get('/last-sales')
+  async findAllLastSales() {
+    return await this.saleService.findLastFiveSales();
+  }
+
   @Get('/simple-sales')
   async findSimpleSales() {
     return await this.saleService.findSimpleSales();
+  }
+
+  @Get('/my-sales/user/:id')
+  async findMySalesUser(@Param('id', ParseIntPipe) id: number) {
+    return await this.saleService.findMySalesUser(id);
+  }
+
+  @Get('/customer-sales/:id')
+  async findCustomerSales(@Param('id', ParseIntPipe) id: number) {
+    return await this.saleService.findCustomerSales(id);
   }
 
   @Get(':id')

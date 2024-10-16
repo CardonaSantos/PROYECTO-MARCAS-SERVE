@@ -57,6 +57,9 @@ export class ProductService {
             },
           },
         },
+        orderBy: {
+          actualizadoEn: 'desc',
+        },
       });
       return product;
     } catch (error) {
@@ -79,11 +82,54 @@ export class ProductService {
 
   async updateOneProduct(id: number, updateProductDto: UpdateProductDto) {
     try {
-      const product = await this.prisma.producto.update({
-        where: { id },
-        data: updateProductDto,
-      });
-      return product;
+      // Si no se envían categoriasIds, solo actualiza los otros campos
+      if (
+        !updateProductDto.categoriasIds ||
+        updateProductDto.categoriasIds.length === 0
+      ) {
+        const product = await this.prisma.producto.update({
+          where: { id },
+          data: {
+            codigoProducto: updateProductDto.codigoProducto,
+            nombre: updateProductDto.nombre,
+            descripcion: updateProductDto.descripcion,
+            precio: updateProductDto.precio,
+          },
+        });
+        return product;
+      } else {
+        // Verifica que las categorías existan en la base de datos
+        const categoriasExistentes = await this.prisma.categoria.findMany({
+          where: { id: { in: updateProductDto.categoriasIds } },
+          select: { id: true },
+        });
+
+        if (
+          categoriasExistentes.length !== updateProductDto.categoriasIds.length
+        ) {
+          throw new NotFoundException('Una o más categorías no existen.');
+        }
+
+        // Actualiza el producto con las nuevas categorías
+        const product = await this.prisma.producto.update({
+          where: { id },
+          data: {
+            codigoProducto: updateProductDto.codigoProducto,
+            nombre: updateProductDto.nombre,
+            descripcion: updateProductDto.descripcion,
+            precio: updateProductDto.precio,
+            categorias: {
+              deleteMany: {}, // elimina todas las relaciones existentes
+              create: updateProductDto.categoriasIds.map((catId) => ({
+                categoria: {
+                  connect: { id: catId },
+                },
+              })),
+            },
+          },
+        });
+        return product;
+      }
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException('Error al actualizar producto');

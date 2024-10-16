@@ -94,18 +94,7 @@ model Stock {
   actualizadoEn DateTime @updatedAt
 }
 
-// model Proveedor {
-//   id          Int       @id @default(autoincrement())
-//   nombre      String
-//   correo      String    @unique
-//   telefono    String
-//   direccion   String?
-//   productos   Stock[]   // Relación con el stock de productos
-//   entregas    EntregaStock[]  // Relación con las entregas de stock
 
-//   creadoEn    DateTime  @default(now())
-//   actualizadoEn DateTime @updatedAt
-// }
 model Proveedor {
   id             Int              @id @default(autoincrement())
   nombre         String
@@ -130,9 +119,6 @@ model Proveedor {
   actualizadoEn  DateTime         @updatedAt
 }
 
-
-
-
 model VentaProducto {
   id          Int      @id @default(autoincrement())
   producto    Producto  @relation(fields: [productoId], references: [id], onDelete: Cascade) // Añadir Cascade aquí
@@ -144,7 +130,6 @@ model VentaProducto {
   creadoEn    DateTime  @default(now())
 }
 
-
 model Descuento {
   id          Int      @id @default(autoincrement())
   porcentaje  Float    // Descuento en porcentaje (ej. 6.0 para un 6%)
@@ -153,6 +138,9 @@ model Descuento {
   activo      Boolean  @default(true) // Si el descuento está activo y puede ser aplicado
   creadoEn    DateTime @default(now())
   actualizadoEn DateTime @updatedAt
+  usado Boolean  @default(false) // Si el descuento está activo y puede ser aplicado
+  dePedido      Boolean   @default(false) // Si el descuento fue solicitado
+
 }
 
 enum EstadoSolicitud {
@@ -170,18 +158,29 @@ model SolicitudDescuento {
   cliente      Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId    Int
   creadoEn     DateTime @default(now())
+  justificacion String
 }
 
-
 model Notificacion {
-  id              Int      @id @default(autoincrement())
-  mensaje         String
-  leido           Boolean  @default(false)
-  remitente       Usuario  @relation("NotificacionesEnviadas", fields: [remitenteId], references: [id], onDelete: Cascade)
-  remitenteId     Int
-  destinatario    Usuario  @relation("NotificacionesRecibidas", fields: [destinatarioId], references: [id], onDelete: Cascade)
-  destinatarioId  Int
-  creadoEn        DateTime @default(now())
+  id               Int                    @id @default(autoincrement())
+  mensaje          String
+  leido            Boolean                @default(false) // Control a nivel general
+  remitenteId      Int?
+  remitente        Usuario?               @relation("NotificacionesEnviadas", fields: [remitenteId], references: [id], onDelete: Cascade)
+  creadoEn         DateTime               @default(now())
+  destinatarios    NotificacionesLeidas[] // Para manejar destinatarios y si leyeron
+}
+
+model NotificacionesLeidas {
+  id               Int                    @id @default(autoincrement())
+  notificacion     Notificacion           @relation(fields: [notificacionId], references: [id], onDelete: Cascade)
+  notificacionId   Int
+  usuario          Usuario                @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuarioId        Int
+  leido            Boolean                @default(false)
+  leidoEn          DateTime?
+  timestamp          DateTime  @default(now())
+
 }
 
 model Asistencia {
@@ -195,19 +194,45 @@ model Asistencia {
 }
 
 //-----------------------------------------------
+
+enum MotivoVisita {
+  COMPRA_CLIENTE
+  PRESENTACION_PRODUCTOS
+  NEGOCIACION_PRECIOS
+  ENTREGA_MUESTRAS
+  PLANIFICACION_PEDIDOS
+  CONSULTA_CLIENTE
+  SEGUIMIENTO
+  PROMOCION
+  OTRO
+}
+
+enum TipoVisita {
+  PRESENCIAL
+  VIRTUAL
+}
+
+enum EstadoVisita {
+  INICIADA      // Cuando la visita ha comenzado
+  FINALIZADA    // Cuando se ha completado exitosamente
+  CANCELADA     // Cuando el cliente no está disponible o no quiere la visita
+}
+
 model Visita {
-  id            Int      @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   inicio        DateTime
   fin           DateTime?
-  vendedor      Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  vendedor      Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId     Int
-  cliente       Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  cliente       Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId     Int
   observaciones String?
-  venta         Venta?    // Ya no necesita `fields` y `references` aquí
-  ventaId       Int?      @unique
-  creadoEn      DateTime  @default(now())
-  actualizadoEn DateTime  @updatedAt
+  ventas        Venta[]       // Una visita puede tener múltiples ventas
+  motivoVisita  MotivoVisita?
+  tipoVisita    TipoVisita?
+  estadoVisita  EstadoVisita  @default(INICIADA)
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
 }
 
 model Venta {
@@ -221,8 +246,8 @@ model Venta {
   usuarioId          Int
   cliente            Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   clienteId          Int
-  visita             Visita?   @relation(fields: [visitaId], references: [id]) // Mantén fields y references aquí
-  visitaId           Int?      @unique
+  visita             Visita?   @relation(fields: [visitaId], references: [id]) // Relación con Visita
+  visitaId           Int?      // Quita @unique aquí
   productos          VentaProducto[]
 }
 
@@ -234,7 +259,7 @@ model Prospecto {
   fin                 DateTime?        // Se establece cuando se finaliza el prospecto
   vendedor            Usuario          @relation("ProspectosVendedor", fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId           Int
-  cliente             Cliente?         @relation(fields: [clienteId], references: [id],  onDelete: Cascade) // Relación opcional con cliente
+  cliente             Cliente?         @relation(fields: [clienteId], references: [id],  onDelete: SetNull) // Relación opcional con cliente
   clienteId           Int?
   nombreCompleto      String?           // Agregado para capturar el nombre completo
   empresaTienda       String?          // Agregado para capturar el nombre de la empresa o tienda
@@ -260,7 +285,8 @@ model Prospecto {
   //-- Relación uno a uno con UbicacionProspecto
   ubicacion           UbicacionProspecto? @relation(fields: [ubicacionId], references: [id])
   ubicacionId         Int?  @unique  // Mantener @unique aquí para relación uno a uno
-
+  //----------------
+  
 }
 
 model UbicacionProspecto {
@@ -339,25 +365,22 @@ model Municipio {
 
 
 model Usuario {
-  id                    Int              @id @default(autoincrement())
-  nombre                String
-  correo                String           @unique
-  contrasena            String
-  rol                   Rol
-  ubicaciones           Ubicacion[]
-  ventas                Venta[]
-  solicitudesDescuento  SolicitudDescuento[]
-  notificacionesEnviadas Notificacion[]  @relation("NotificacionesEnviadas")
-  notificacionesRecibidas Notificacion[] @relation("NotificacionesRecibidas")
-  registrosAsistencia   Asistencia[]
-  prospectos            Prospecto[]      @relation("ProspectosVendedor") // Relación con Prospecto
-
-  creadoEn              DateTime         @default(now())
-  actualizadoEn         DateTime         @updatedAt
-
-  visitas    Visita[] // Relación con el modelo Visita
-  activo                Boolean          @default(true) // Campo activo para activar/desactivar al usuario
-
+  id                     Int                    @id @default(autoincrement())
+  nombre                 String
+  correo                 String                 @unique
+  contrasena             String
+  rol                    Rol
+  ubicaciones            Ubicacion[]
+  ventas                 Venta[]
+  solicitudesDescuento   SolicitudDescuento[]
+  notificacionesEnviadas Notificacion[]          @relation("NotificacionesEnviadas")
+  registrosAsistencia    Asistencia[]
+  prospectos             Prospecto[]            @relation("ProspectosVendedor")
+  creadoEn               DateTime               @default(now())
+  actualizadoEn          DateTime               @updatedAt
+  visitas                Visita[]
+  activo                 Boolean                @default(true)
+  NotificacionesLeidas   NotificacionesLeidas[] // Solo esta relación para manejar las notificaciones leídas
 }
 
 enum Rol {
