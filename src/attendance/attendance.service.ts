@@ -96,6 +96,9 @@ export class AttendanceService {
   async findAll() {
     try {
       const Attendances = await this.prisma.asistencia.findMany({
+        orderBy: {
+          creadoEn: 'desc',
+        },
         include: {
           usuario: {
             select: {

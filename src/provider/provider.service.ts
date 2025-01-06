@@ -10,21 +10,32 @@ import { PrismaService } from 'src/prisma.service';
 @Injectable()
 export class ProviderService {
   constructor(private readonly prisma: PrismaService) {}
+
   async create(createProviderDto: CreateProviderDto) {
     try {
-      const newProvder = await this.prisma.proveedor.create({
-        data: createProviderDto,
+      // Filtra el campo `id` si existe en el objeto
+      const { id, ...data } = createProviderDto;
+
+      console.log('Data enviada a Prisma (sin id):', data);
+
+      const newProvider = await this.prisma.proveedor.create({
+        data,
       });
-      return newProvder;
+
+      return newProvider;
     } catch (error) {
       console.log(error);
-      throw new InternalServerErrorException('Error el crear proveedor');
+      throw new InternalServerErrorException('Error al crear proveedor');
     }
   }
 
   async findAll() {
     try {
-      const providers = await this.prisma.proveedor.findMany({});
+      const providers = await this.prisma.proveedor.findMany({
+        orderBy: {
+          actualizadoEn: 'asc',
+        },
+      });
       return providers;
     } catch (error) {
       console.log(error);

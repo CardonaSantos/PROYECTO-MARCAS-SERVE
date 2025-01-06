@@ -18,6 +18,10 @@ import { LocationGateway } from './location/location.gateway';
 import { ProspectoModule } from './prospecto/prospecto.module';
 import { CustomerLocationModule } from './customer-location/customer-location.module';
 import { AnalitycsModule } from './analitycs/analitycs.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { EmpresaModule } from './empresa/empresa.module';
+import { ReportsModule } from './reports/reports.module';
+import { RecoveryModule } from './recovery/recovery.module';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import { AnalitycsModule } from './analitycs/analitycs.module';
     ProspectoModule,
     CustomerLocationModule,
     AnalitycsModule,
+    ScheduleModule.forRoot(),
+    EmpresaModule,
+    ReportsModule,
+    RecoveryModule,
   ],
   controllers: [],
   providers: [LocationGateway],

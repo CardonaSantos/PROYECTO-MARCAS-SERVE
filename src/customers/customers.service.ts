@@ -19,6 +19,7 @@ export class CustomersService {
       const newCustomer = await this.prisma.cliente.create({
         data: {
           nombre: createCustomerDto.nombre,
+          apellido: createCustomerDto.apellido,
           correo: createCustomerDto.correo,
           direccion: createCustomerDto.direccion,
           telefono: createCustomerDto.telefono,
@@ -252,6 +253,7 @@ export class CustomersService {
       const newCustomer = await this.prisma.cliente.create({
         data: {
           nombre: createCustomerDto.nombre,
+          apellido: createCustomerDto.apellido,
           correo: createCustomerDto.correo,
           direccion: createCustomerDto.direccion,
           telefono: createCustomerDto.telefono,

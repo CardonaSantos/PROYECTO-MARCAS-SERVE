@@ -4,6 +4,7 @@ import { TipoCliente } from '@prisma/client';
 
 export class UpdateProspectoDto extends PartialType(CreateProspectoDto) {
   nombreCompleto?: string;
+  apellido?: string;
   empresaTienda?: string;
   telefono?: string;
   correo?: string;

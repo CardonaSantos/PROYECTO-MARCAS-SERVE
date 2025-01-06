@@ -15,6 +15,9 @@ export class DeliveryStockService {
   async findAll() {
     try {
       const stockDeliveryRegist = await this.prisma.entregaStock.findMany({
+        orderBy: {
+          timestamp: 'desc',
+        },
         include: {
           productos: {
             include: {

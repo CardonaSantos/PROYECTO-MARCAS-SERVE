@@ -85,8 +85,8 @@ export class LocationService {
   // }
 
   // location.service.ts
+  // location.service.ts
   async findLocationByUserId(usuarioId: number) {
-    // Definir inicio y fin del día en UTC
     const today = new Date();
     const startOfDay = new Date(
       Date.UTC(
@@ -97,7 +97,7 @@ export class LocationService {
         0,
         0,
       ),
-    ); // Inicio del día en UTC
+    );
     const endOfDay = new Date(
       Date.UTC(
         today.getUTCFullYear(),
@@ -108,9 +108,8 @@ export class LocationService {
         59,
         999,
       ),
-    ); // Fin del día en UTC
+    );
 
-    // Realizar la búsqueda de la ubicación y asociar la asistencia
     return this.prisma.ubicacion.findFirst({
       where: { usuarioId },
       include: {
@@ -120,32 +119,46 @@ export class LocationService {
             id: true,
             rol: true,
             prospectos: {
-              take: 1, // Devuelve solo un prospecto en curso
+              take: 1,
               where: {
                 estado: 'EN_PROSPECTO',
-                fin: null, // Solo prospectos en curso
+                fin: null,
               },
               select: {
                 estado: true,
                 empresaTienda: true,
                 nombreCompleto: true,
+                apellido: true,
                 inicio: true,
               },
             },
             registrosAsistencia: {
-              take: 1, // Solo el último registro de asistencia del día actual
+              take: 1,
               where: {
                 AND: [
-                  { fecha: { gte: startOfDay, lte: endOfDay } }, // Filtrar por día actual en UTC
-                  { salida: null }, // Solo registros sin salida
+                  { fecha: { gte: startOfDay, lte: endOfDay } },
+                  { salida: null },
                 ],
               },
-              orderBy: {
-                entrada: 'desc', // Ordena por la última entrada
+              orderBy: { entrada: 'desc' },
+              select: { entrada: true, salida: true },
+            },
+            visitas: {
+              take: 1, // Incluye solo una visita activa
+              where: {
+                estadoVisita: 'INICIADA', // Filtra visitas activas
               },
               select: {
-                entrada: true,
-                salida: true,
+                id: true,
+                inicio: true,
+                cliente: {
+                  select: {
+                    nombre: true,
+                    apellido: true,
+                  },
+                },
+                motivoVisita: true,
+                tipoVisita: true,
               },
             },
           },
@@ -198,6 +211,7 @@ export class LocationService {
             estado: true,
             empresaTienda: true,
             nombreCompleto: true,
+            apellido: true,
             inicio: true,
           },
         },

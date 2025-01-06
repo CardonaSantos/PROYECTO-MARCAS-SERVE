@@ -13,6 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Empresa {
+  id        Int      @id @default(autoincrement())
+  nombre    String   // Nombre de la empresa
+  telefono  String   // Teléfono principal
+  pbx       String?  // PBX (opcional)
+  direccion String   // Dirección de la empresa
+  email     String   @unique // Correo electrónico único
+  website   String?  // Página web de la empresa (opcional)
+  createdAt DateTime @default(now())   // Fecha de creación
+  updatedAt DateTime @updatedAt        // Fecha de última actualización
+}
+
 
 
 model Ubicacion {
@@ -23,9 +35,6 @@ model Ubicacion {
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   usuarioId Int
 }
-
-
-
 model Categoria {
   id         Int                 @id @default(autoincrement())
   nombre     String
@@ -63,8 +72,8 @@ model ProductoCategoria {
 
 model EntregaStock {
   id           Int                    @id @default(autoincrement())
-  proveedor    Proveedor               @relation(fields: [proveedorId], references: [id])
-  proveedorId  Int
+  proveedor    Proveedor?               @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  proveedorId  Int?
   timestamp    DateTime                @default(now()) // Fecha de la entrega
   productos    EntregaStockProducto[]  // Relación con los productos entregados
 
@@ -87,8 +96,8 @@ model Stock {
   id          Int       @id @default(autoincrement())
   producto    Producto   @relation(fields: [productoId], references: [id], onDelete: Cascade)
   productoId  Int        @unique
-  proveedor   Proveedor  @relation(fields: [proveedorId], references: [id])
-  proveedorId Int
+  proveedor   Proveedor?  @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
+  proveedorId Int?
   cantidad    Int        // Cantidad total de este producto en stock
   costoTotal  Float      // Costo total de adquisición de todos los productos en stock  creadoEn    DateTime   @default(now())
   actualizadoEn DateTime @updatedAt
@@ -98,8 +107,8 @@ model Stock {
 model Proveedor {
   id             Int              @id @default(autoincrement())
   nombre         String
-  correo         String           @unique
-  telefono       String
+  correo         String?           
+  telefono       String?
   direccion      String?
   razonSocial    String?
   rfc            String?
@@ -109,8 +118,6 @@ model Proveedor {
   pais           String?
   ciudad         String?
   codigoPostal   String?
-  latitud        Float?
-  longitud       Float?
   activo         Boolean          @default(true)
   notas          String?
   productos      Stock[]
@@ -185,7 +192,7 @@ model NotificacionesLeidas {
 
 model Asistencia {
   id              Int      @id @default(autoincrement())
-  fecha           DateTime // Agregando un campo para la fecha específica
+  fecha           DateTime 
   entrada         DateTime
   salida          DateTime? // Puede estar en null si aún no ha salido
   usuario         Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -262,6 +269,7 @@ model Prospecto {
   cliente             Cliente?         @relation(fields: [clienteId], references: [id],  onDelete: SetNull) // Relación opcional con cliente
   clienteId           Int?
   nombreCompleto      String?           // Agregado para capturar el nombre completo
+  apellido            String?
   empresaTienda       String?          // Agregado para capturar el nombre de la empresa o tienda
   telefono            String?          // Mapeado desde el formulario, opcional
   correo              String?          // Mapeado desde el formulario, opcional
@@ -309,7 +317,8 @@ enum EstadoProspecto {
 model Cliente {
   id                   Int                 @id @default(autoincrement())//-
   nombre               String//-
-  correo               String              @unique//-
+  apellido             String?
+  correo               String?              
   telefono             String//-
   direccion            String              // DIRECCIÓN TIPO STRING DESCRITO//-
   ventas               Venta[]//-
@@ -381,6 +390,10 @@ model Usuario {
   visitas                Visita[]
   activo                 Boolean                @default(true)
   NotificacionesLeidas   NotificacionesLeidas[] // Solo esta relación para manejar las notificaciones leídas
+
+    // Campos para la recuperación de contraseña
+  tokenRecuperacion      String?   // Token generado para restablecer contraseña
+  expiracionToken        DateTime? // Fecha de expiración del token
 }
 
 enum Rol {

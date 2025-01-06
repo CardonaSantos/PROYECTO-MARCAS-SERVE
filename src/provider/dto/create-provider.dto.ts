@@ -12,6 +12,9 @@ import {
 } from 'class-validator';
 
 export class CreateProviderDto {
+  @IsNumber()
+  id: number;
+
   @IsString()
   @IsNotEmpty()
   nombre: string;

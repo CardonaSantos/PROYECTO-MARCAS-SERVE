@@ -13,6 +13,9 @@ export class CreateProspectoDto {
   nombreCompleto?: string;
 
   @IsString()
+  apellido?: string;
+
+  @IsString()
   empresaTienda?: string;
 
   @IsOptional()

@@ -13,6 +13,7 @@ import { CreateLocationDto } from './dto/create-location.dto';
 import { LocationService } from './location.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { ProspectoService } from 'src/prospecto/prospecto.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 // const allowedSocketOrigin = process.env.CORS_ORIGIN;
 const allowedSocketOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000'; // Asegúrate de que esto incluya tu dominio real
@@ -34,6 +35,7 @@ interface Prospectos {
   estado: Estado;
   inicio: string;
   nombreCompleto: string;
+  apellido: string;
   empresaTienda: string;
 }
 
@@ -58,8 +60,12 @@ export class LocationGateway {
     private readonly locationService: LocationService,
   ) {}
 
-  // Actualizamos a los admins con los usuarios conectados
-  private updateAdmins() {
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  handleCron() {
+    this.startBroadcastingConnectedUsers();
+  }
+
+  startBroadcastingConnectedUsers() {
     const totalConnectedUsers = this.getTotalConnectedUsers();
     const totalEmployees = this.getConnectedEmployees();
     const totalAdmins = this.getConnectedAdmins();
@@ -72,6 +78,7 @@ export class LocationGateway {
 
     this.admins.forEach((socketId) => {
       this.server.to(socketId).emit('updateConnectedUsers', data);
+      console.log('Emitiendo con CRON solo a admins...');
     });
   }
 
@@ -93,7 +100,7 @@ export class LocationGateway {
       console.log(`Cliente conectado ${client.id} Usuario ID NaN`);
     }
 
-    this.updateAdmins(); // Notificar después de la conexión
+    // this.updateAdmins(); // Notificar después de la conexión
   }
 
   //PARA EMITIR EVENTOS
@@ -169,7 +176,7 @@ export class LocationGateway {
       console.log(`${role} desconectado: ${client.id} Usuario ID: ${userId}`);
     }
 
-    this.updateAdmins(); // Notificar después de la desconexión
+    // this.updateAdmins(); // Notificar después de la desconexión
   }
 
   @SubscribeMessage('sendLocation')
@@ -201,6 +208,7 @@ export class LocationGateway {
           rol: existingLocation.usuario.rol,
           prospecto: existingLocation.usuario.prospectos[0] || null, // Incluye el prospecto
           asistencia: existingLocation.usuario.registrosAsistencia[0] || null, // Incluye la asistencia
+          visita: existingLocation.usuario.visitas[0] || null, // Incluye la visita en curso
         },
       };
     } else {
@@ -220,6 +228,7 @@ export class LocationGateway {
           rol: userInfo?.rol || 'Desconocido',
           prospecto: userInfo?.prospectos[0] || null,
           asistencia: userInfo?.registrosAsistencia[0] || null,
+          visita: existingLocation.usuario.visitas[0] || null, // Incluye la visita en curso
         },
       };
     }

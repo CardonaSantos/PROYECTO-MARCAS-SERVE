@@ -18,6 +18,7 @@ export class ProspectoService {
       const nuevoProspecto = await this.prisma.prospecto.create({
         data: {
           nombreCompleto: createProspectoDto.nombreCompleto,
+          apellido: createProspectoDto.apellido,
           empresaTienda: createProspectoDto.empresaTienda,
           vendedor: {
             connect: { id: createProspectoDto.usuarioId }, // Conectando al vendedor por ID
@@ -70,6 +71,9 @@ export class ProspectoService {
   async findAll() {
     try {
       const prospectos = await this.prisma.prospecto.findMany({
+        orderBy: {
+          creadoEn: 'desc',
+        },
         include: {
           vendedor: {
             select: {
@@ -127,7 +131,6 @@ export class ProspectoService {
       );
 
       return prospectoAbierto;
-      return;
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException(
@@ -186,6 +189,7 @@ export class ProspectoService {
         },
         data: {
           nombreCompleto: updateProspectoDto.nombreCompleto,
+          apellido: updateProspectoDto.apellido,
           empresaTienda: updateProspectoDto.empresaTienda,
           telefono: updateProspectoDto.telefono,
           correo: updateProspectoDto.correo,
@@ -237,5 +241,91 @@ export class ProspectoService {
 
   remove(id: number) {
     return `This action removes a #${id} prospecto`;
+  }
+
+  async cancelarProspecto(
+    prospectoId: number,
+    updateProspectoDto: UpdateProspectoDto,
+  ) {
+    try {
+      console.log(
+        'Datos recibidos para cancelar el prospecto:',
+        updateProspectoDto,
+      );
+
+      // Obtener la fecha/hora actual directamente (ya incluye la hora local del servidor)
+      const fechaHoraGuatemala = new Date().toLocaleString('en-US', {
+        timeZone: 'America/Guatemala',
+      });
+
+      // Convertirlo a un objeto Date de JS
+      const fechaHoraFin = new Date(fechaHoraGuatemala);
+
+      let nuevaUbicacionProspectoId: number | null = null;
+
+      // Verificar si se proporcionaron latitud y longitud
+      if (updateProspectoDto.latitud && updateProspectoDto.longitud) {
+        const nuevaUbicacionProspecto =
+          await this.prisma.ubicacionProspecto.create({
+            data: {
+              latitud: updateProspectoDto.latitud,
+              longitud: updateProspectoDto.longitud,
+              prospectoId, // Asociar con el prospecto
+            },
+          });
+        console.log(
+          'Ubicación creada al cancelar el prospecto:',
+          nuevaUbicacionProspecto,
+        );
+        nuevaUbicacionProspectoId = nuevaUbicacionProspecto.id;
+      }
+
+      // Actualizar el prospecto
+      const prospectoCancelado = await this.prisma.prospecto.update({
+        where: {
+          id: prospectoId,
+        },
+        data: {
+          nombreCompleto: updateProspectoDto.nombreCompleto || undefined,
+          apellido: updateProspectoDto.apellido || undefined,
+          empresaTienda: updateProspectoDto.empresaTienda || undefined,
+          telefono: updateProspectoDto.telefono || undefined,
+          correo: updateProspectoDto.correo || undefined,
+          direccion: updateProspectoDto.direccion || undefined,
+          tipoCliente: updateProspectoDto.tipoCliente || undefined,
+          categoriasInteres: updateProspectoDto.categoriasInteres || undefined,
+          volumenCompra: updateProspectoDto.volumenCompra || undefined,
+          presupuestoMensual:
+            updateProspectoDto.presupuestoMensual || undefined,
+          preferenciaContacto:
+            updateProspectoDto.preferenciaContacto || undefined,
+          comentarios: updateProspectoDto.comentarios || undefined,
+          fin: fechaHoraFin, // Establecer la fecha de cancelación
+          estado: 'CERRADO', // Cambiar el estado a CANCELADO
+          departamento: updateProspectoDto.departamentoId
+            ? {
+                connect: { id: updateProspectoDto.departamentoId },
+              }
+            : undefined,
+          municipio: updateProspectoDto.municipioId
+            ? {
+                connect: { id: updateProspectoDto.municipioId },
+              }
+            : undefined,
+          ubicacion: nuevaUbicacionProspectoId
+            ? {
+                connect: { id: nuevaUbicacionProspectoId },
+              }
+            : undefined,
+        },
+      });
+
+      return prospectoCancelado;
+    } catch (error) {
+      console.error('Error al cancelar el prospecto:', error);
+      throw new InternalServerErrorException(
+        'Error al cancelar el prospecto. Por favor, inténtelo nuevamente.',
+      );
+    }
   }
 }

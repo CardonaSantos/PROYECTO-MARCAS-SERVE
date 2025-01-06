@@ -162,6 +162,7 @@ export class DateService {
           cliente: {
             select: {
               nombre: true,
+              apellido: true,
               id: true,
               telefono: true,
               correo: true,
@@ -183,9 +184,13 @@ export class DateService {
       );
     }
   }
+
   async findVisitsRegis() {
     try {
       const visitsRegists = await this.prisma.visita.findMany({
+        orderBy: {
+          creadoEn: 'desc',
+        },
         include: {
           cliente: {
             select: {

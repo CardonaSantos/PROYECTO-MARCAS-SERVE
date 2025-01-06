@@ -54,6 +54,18 @@ export class ProspectoController {
     return this.prospectoService.updateProspecto(id, updateProspectoDto);
   }
 
+  @Patch('/cancelar-prospecto/:id')
+  async cancelarProspecto(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateProspectoDto: UpdateProspectoDto,
+  ) {
+    console.log('Cancelando prospecto con ID:', id);
+    return await this.prospectoService.cancelarProspecto(
+      id,
+      updateProspectoDto,
+    );
+  }
+
   @Delete('/delete-all')
   removeAll() {
     return this.prospectoService.removeAll();

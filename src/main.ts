@@ -37,3 +37,6 @@ bootstrap();
 
 // Ver la eliminacion de usuarios desactivados
 // ver el envio de informacion de localizacion para ver primero, si el usuario existe o no
+
+//NOTIFICACIONES AL CREAR REGISTRO DE VISTIA, NO SE PUSO, TAMBIEN PONERLE NOTIFICACIONES A OTROS REGISTRO
+//ARREGLAR LAS NOTFICACIONES PARA EMPLEADOS

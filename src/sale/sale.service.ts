@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -104,6 +105,8 @@ export class SaleService {
           mensaje: `El vendedor ${vendedor.nombre} ha registrado una venta para el cliente ${cliente.nombre}`,
           remitenteId: vendedor.id, // EL REMITENTE ES EL CREADOR DEL EVENTO, ACCIONADOR
         });
+
+        console.log('la nueva venta es: ', newSale);
 
         return newSale;
       });
@@ -400,6 +403,66 @@ export class SaleService {
     } catch (error) {
       console.log(error);
       throw new NotFoundException('No se encontraron registros de ventas');
+    }
+  }
+
+  async getSaleToPDF(id: number) {
+    try {
+      const sale = await this.prisma.venta.findUnique({
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          timestamp: true,
+          monto: true,
+          montoConDescuento: true,
+          descuento: true,
+          metodoPago: true,
+          cliente: {
+            select: {
+              id: true,
+              nombre: true,
+              apellido: true,
+              telefono: true,
+              correo: true,
+              direccion: true,
+            },
+          },
+          vendedor: {
+            select: {
+              id: true,
+              nombre: true,
+              correo: true,
+            },
+          },
+          productos: {
+            select: {
+              cantidad: true,
+              precio: true,
+              producto: {
+                select: {
+                  id: true,
+                  nombre: true,
+                  descripcion: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Validación por si no se encuentra la venta
+      if (!sale) {
+        throw new BadRequestException(`La venta con ID ${id} no existe`);
+      }
+
+      return sale;
+
+      // Agregar los totales calculados al resultado
+    } catch (error) {
+      console.error(`Error al generar el PDF de la venta ${id}:`, error);
+      throw new BadRequestException('Error al conseguir la venta para el PDF');
     }
   }
 }

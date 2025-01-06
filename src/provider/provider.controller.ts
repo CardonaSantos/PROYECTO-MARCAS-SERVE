@@ -33,15 +33,15 @@ export class ProviderController {
 
   @Patch(':id')
   async update(
-    @Param('id', ParseIntPipe) id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateProviderDto: UpdateProviderDto,
   ) {
-    return await this.providerService.update(+id, updateProviderDto);
+    return await this.providerService.update(id, updateProviderDto);
   }
 
   @Delete('/delete-provider/:id')
-  async remove(@Param('id', ParseIntPipe) id: string) {
-    return await this.providerService.remove(+id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return await this.providerService.remove(id);
   }
 
   @Delete(':id')

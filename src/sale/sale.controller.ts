@@ -59,6 +59,11 @@ export class SaleController {
     return await this.saleService.findOne(+id);
   }
 
+  @Get('/get-sale-to-pdf/:id')
+  async getSaleToPDF(@Param('id', ParseIntPipe) id: number) {
+    return await this.saleService.getSaleToPDF(id);
+  }
+
   @Delete('/delete-all')
   // @HttpCode(204)
   async removeAllRegist() {
