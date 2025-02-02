@@ -22,6 +22,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EmpresaModule } from './empresa/empresa.module';
 import { ReportsModule } from './reports/reports.module';
 import { RecoveryModule } from './recovery/recovery.module';
+import { CreditoModule } from './credito/credito.module';
+import { SaldosModule } from './saldos/saldos.module';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { RecoveryModule } from './recovery/recovery.module';
     EmpresaModule,
     ReportsModule,
     RecoveryModule,
+    CreditoModule,
+    SaldosModule,
   ],
   controllers: [],
   providers: [LocationGateway],

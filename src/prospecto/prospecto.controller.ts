@@ -18,7 +18,7 @@ export class ProspectoController {
 
   @Post()
   async create(@Body() createProspectoDto: CreateProspectoDto) {
-    console.log('entrando a ruta prospecto...');
+    console.log('CREANDO PROSPECTO MAN');
 
     return await this.prospectoService.create(createProspectoDto);
   }
@@ -26,6 +26,11 @@ export class ProspectoController {
   @Get()
   async findAll() {
     return await this.prospectoService.findAll();
+  }
+
+  @Get('/get-prospectos-cancelados/:id')
+  async findAllMyCancelProspects(@Param('id', ParseIntPipe) id: number) {
+    return await this.prospectoService.findAllMyCancelProspects(id);
   }
 
   @Get('/prospecto-ubicaciones')
@@ -50,7 +55,6 @@ export class ProspectoController {
   ) {
     console.log('Entrando al controller de actualizacion ');
     console.log('La data del prospecto actualizado es: ', updateProspectoDto);
-
     return this.prospectoService.updateProspecto(id, updateProspectoDto);
   }
 

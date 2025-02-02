@@ -249,6 +249,8 @@ export class CustomersService {
     createCustomerDto: CreateCustomerFromProspectDto,
   ) {
     try {
+      console.log('Lo que me está llegando es: ', createCustomerDto);
+
       // Crear el cliente primero
       const newCustomer = await this.prisma.cliente.create({
         data: {

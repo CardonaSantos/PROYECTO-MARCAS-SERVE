@@ -13,6 +13,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// generator seed {
+//   provider = "prisma-db-seed"
+//   // optional config
+// }
+
+
+model IngresosEmpresa {
+  id            Int      @id @default(autoincrement())
+  empresaId     Int      @unique // Relación con la tabla Empresa (única)
+  empresa       Empresa  @relation(fields: [empresaId], references: [id])
+  saldoActual    Float   @default(0)
+  ingresosTotales Float   @default(0) // Total acumulado de ingresos
+  egresosTotales Float   @default(0) // Total acumulado de egresos
+  numeroVentas   Int      @default(0) // Número de ventas realizadas
+  updatedAt      DateTime @updatedAt  // Fecha de última actualización
+  createdAt      DateTime @default(now()) // Fecha de creación
+}
+
 model Empresa {
   id        Int      @id @default(autoincrement())
   nombre    String   // Nombre de la empresa
@@ -23,6 +41,12 @@ model Empresa {
   website   String?  // Página web de la empresa (opcional)
   createdAt DateTime @default(now())   // Fecha de creación
   updatedAt DateTime @updatedAt        // Fecha de última actualización
+  //
+  ingresosEmpresa IngresosEmpresa? // Relación 1:1
+  //
+  Usuario Usuario[]
+
+  Credito Credito[]
 }
 
 
@@ -256,6 +280,8 @@ model Venta {
   visita             Visita?   @relation(fields: [visitaId], references: [id]) // Relación con Visita
   visitaId           Int?      // Quita @unique aquí
   productos          VentaProducto[]
+  //
+  Credito Credito[]
 }
 
 
@@ -340,6 +366,8 @@ model Cliente {
   presupuestoMensual String?
   preferenciaContacto String?
   comentarios String?
+
+  Credito Credito[]
 }
 
 
@@ -394,7 +422,59 @@ model Usuario {
     // Campos para la recuperación de contraseña
   tokenRecuperacion      String?   // Token generado para restablecer contraseña
   expiracionToken        DateTime? // Fecha de expiración del token
+  //
+  empresaId   Int?        // FK opcional, en caso de que un usuario no tenga empresa
+  empresa     Empresa?    @relation(fields: [empresaId], references: [id])
 }
+
+model Credito {
+  id                  Int          @id @default(autoincrement())
+  venta               Venta?       @relation(fields: [ventaId], references: [id], onDelete: Cascade)
+  ventaId             Int?
+  cliente             Cliente?     @relation(fields: [clienteId], references: [id])
+  clienteId           Int?
+  empresaId           Int?
+  empresa             Empresa?     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  montoTotal          Float        // Monto total del crédito antes de interés
+  cuotaInicial        Float        // Monto inicial pagado
+  totalPagado         Float        @default(0) // Total pagado hasta ahora
+  numeroCuotas        Int          // Número total de cuotas
+  estado              EstadoCredito // Enum para saber si está activo, cerrado, etc.
+  interes             Float        // Nivel de interés en porcentaje (ej: 10 para 10%)
+  montoConInteres     Float        // Monto total después de aplicar el interés
+  montoTotalConInteres Float?      // Monto total del crédito después de interés
+  saldoPendiente      Float        // Saldo restante después del pago inicial
+  fechaInicio         DateTime     @default(now()) // Fecha en que inició el crédito
+  diasEntrePagos      Float        //NUEVA PROPIEDAD
+  fechaContrato       DateTime     @default(now()) // Fecha del contrato
+  dpi                 String       // DPI del cliente
+  testigos            Json         // Testigos en formato JSON
+  comentario          String?      // Observaciones del crédito
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  pagos               PagoCredito[] // Relación con los pagos realizados
+}
+
+model PagoCredito {
+  id             Int      @id @default(autoincrement())
+  credito        Credito  @relation(fields: [creditoId], references: [id], onDelete: Cascade)
+  creditoId      Int      // Relación con la tabla Credito
+  monto          Float    // Monto del pago
+  timestamp      DateTime @default(now()) // Fecha del pago
+  metodoPago     MetodoPago // Cómo se realizó el pago
+}
+
+enum FrecuenciaPago {
+  MENSUAL
+  QUINCENAL
+  SEMANAL
+}
+
+enum EstadoCredito {
+  ACTIVO
+  CERRADO
+}
+
 
 enum Rol {
   ADMIN
@@ -405,6 +485,7 @@ enum MetodoPago {
   CONTADO
   TARJETA
   TRANSFERENCIA_BANCO
+  CREDITO
 }
 // Enums añadidos
    

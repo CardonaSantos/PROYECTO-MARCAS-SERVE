@@ -85,7 +85,16 @@ export class NotificationsService {
 
   async findNotificationsForMyAdmin(adminId: number) {
     try {
-      // Buscar en NotificacionesLeidas las notificaciones del administrador
+      // Buscar en NotificacionesLeidas las n
+      // logotificaciones del administrador
+      console.log('Mi id es: ', adminId);
+      console.log(
+        'El usuario es: ',
+        await this.prisma.usuario.findUnique({
+          where: { id: adminId },
+        }),
+      );
+
       const notificationsForAdmin =
         await this.prisma.notificacionesLeidas.findMany({
           where: {

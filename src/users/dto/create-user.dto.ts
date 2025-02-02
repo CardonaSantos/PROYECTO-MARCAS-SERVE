@@ -2,6 +2,7 @@ import {
   IsEnum,
   isNotEmpty,
   IsNotEmpty,
+  IsNumber,
   isString,
   IsString,
   MinLength,
@@ -25,6 +26,9 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsEnum(Rol) // Enum validado
   rol: Rol;
+
+  @IsNumber()
+  empresaId: number;
 
   // Aquí podrías añadir más lógica para manejar las ubicaciones
 }

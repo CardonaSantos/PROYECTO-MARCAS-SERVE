@@ -6,14 +6,21 @@ import {
 import { CreateProspectoDto } from './dto/create-prospecto.dto';
 import { UpdateProspectoDto } from './dto/update-prospecto.dto';
 import { PrismaService } from 'src/prisma.service';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class ProspectoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationsService,
+  ) {}
+
   //----------------------------------------------------
   // En tu servicio prospecto.service.ts
   async create(createProspectoDto: CreateProspectoDto) {
     try {
+      console.log('Los datos entrantes son: ', createProspectoDto);
+
       // Comienza creando el prospecto sin la ubicación
       const nuevoProspecto = await this.prisma.prospecto.create({
         data: {
@@ -41,10 +48,6 @@ export class ProspectoService {
         },
       });
 
-      console.log('Prospecto creado: ', nuevoProspecto);
-
-      // Si se proporcionan latitud y longitud, crear la ubicación y asociarla al prospecto
-      // Si se proporcionan latitud y longitud, crear la ubicación y asociarla al prospecto
       if (createProspectoDto.latitud && createProspectoDto.longitud) {
         const nuevaUbicacion = await this.prisma.ubicacionProspecto.create({
           data: {
@@ -54,10 +57,46 @@ export class ProspectoService {
           },
         });
 
-        console.log('Ubicación creada: ', nuevaUbicacion);
-
         // Retornar prospecto con ubicación
         return { ...nuevoProspecto, ubicacion: nuevaUbicacion };
+      }
+
+      const vendedor = await this.prisma.usuario.findUnique({
+        where: {
+          id: createProspectoDto.usuarioId,
+        },
+      });
+
+      const prospectoCreado = await this.prisma.prospecto.findUnique({
+        where: {
+          id: nuevoProspecto.id,
+        },
+      });
+
+      // Verifica que vendedor y prospectoCreado existen antes de crear la notificación
+      if (vendedor && prospectoCreado) {
+        console.log(
+          'El vendedor para la notificacion y prospecto son: ',
+          vendedor,
+          prospectoCreado,
+        );
+
+        console.log('=======================================');
+
+        const nombreProspecto =
+          prospectoCreado.nombreCompleto && prospectoCreado.apellido
+            ? `${prospectoCreado.nombreCompleto} ${prospectoCreado.apellido}`
+            : prospectoCreado.empresaTienda || 'un cliente';
+
+        const notify = await this.notificationService.createNotification({
+          mensaje: `${vendedor.nombre} ha iniciado un prospecto con ${nombreProspecto}.`,
+
+          remitenteId: vendedor.id,
+        });
+
+        console.log('Notificación creada: ', notify);
+      } else {
+        console.error('Error: No se encontró el vendedor o el prospecto.');
       }
 
       // Retornar prospecto sin ubicación
@@ -99,6 +138,52 @@ export class ProspectoService {
           ubicacion: true,
         },
       });
+      return prospectos;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException(
+        'Error al recuperar los prospectos',
+      );
+    }
+  }
+  async findAllMyCancelProspects(id: number) {
+    try {
+      console.log('Mis prospectos cancelados', id);
+
+      const prospectos = await this.prisma.prospecto.findMany({
+        where: {
+          usuarioId: id, //el usuario que lo registró
+          estado: 'CERRADO',
+        },
+        orderBy: {
+          creadoEn: 'desc',
+        },
+        include: {
+          vendedor: {
+            select: {
+              correo: true,
+              id: true,
+              nombre: true,
+              rol: true,
+            },
+          },
+
+          departamento: {
+            select: {
+              nombre: true,
+              id: true,
+            },
+          },
+          municipio: {
+            select: {
+              id: true,
+              nombre: true,
+            },
+          },
+          ubicacion: true,
+        },
+      });
+
       return prospectos;
     } catch (error) {
       console.log(error);
@@ -216,6 +301,41 @@ export class ProspectoService {
         },
       });
 
+      const vendedor = await this.prisma.usuario.findUnique({
+        where: {
+          id: prospectoUpdate.usuarioId,
+        },
+      });
+
+      const prospectoCreado = await this.prisma.prospecto.findUnique({
+        where: {
+          id: prospectoUpdate.id,
+        },
+      });
+
+      // Verifica que vendedor y prospectoCreado existen antes de crear la notificación
+      if (vendedor && prospectoCreado) {
+        console.log(
+          'El vendedor para la notificacion y prospecto son: ',
+          vendedor,
+          prospectoCreado,
+        );
+
+        const nombreProspecto =
+          prospectoCreado.nombreCompleto && prospectoCreado.apellido
+            ? `${prospectoCreado.nombreCompleto} ${prospectoCreado.apellido}`
+            : prospectoCreado.empresaTienda || 'un cliente';
+
+        const notify = await this.notificationService.createNotification({
+          mensaje: `${vendedor.nombre} ha finalizado un prospecto con ${nombreProspecto}.`,
+          remitenteId: vendedor.id,
+        });
+
+        console.log('Notificación creada: ', notify);
+      } else {
+        console.error('Error: No se encontró el vendedor o el prospecto.');
+      }
+
       return prospectoUpdate;
     } catch (error) {
       console.error('Error al actualizar el prospecto:', error);
@@ -319,6 +439,36 @@ export class ProspectoService {
             : undefined,
         },
       });
+
+      console.log('El prospecto cancelado es: ', prospectoCancelado);
+      const prospectoCanceladoActualizado =
+        await this.prisma.prospecto.findUnique({
+          where: {
+            id: prospectoCancelado.id,
+          },
+        });
+      const vendedor = await this.prisma.usuario.findUnique({
+        where: {
+          id: prospectoCancelado.usuarioId,
+        },
+      });
+      // Verifica que vendedor y prospectoCreado existen antes de crear la notificación
+      if (vendedor && prospectoCanceladoActualizado) {
+        const nombreProspecto =
+          prospectoCanceladoActualizado.nombreCompleto &&
+          prospectoCanceladoActualizado.apellido
+            ? `${prospectoCanceladoActualizado.nombreCompleto} ${prospectoCanceladoActualizado.apellido}`
+            : prospectoCanceladoActualizado.empresaTienda || 'un cliente';
+
+        const notify = await this.notificationService.createNotification({
+          mensaje: `${vendedor.nombre} ha cancelado un prospecto con ${nombreProspecto}.`,
+          remitenteId: vendedor.id,
+        });
+
+        console.log('Notificación creada: ', notify);
+      } else {
+        console.error('Error: No se encontró el vendedor o el prospecto.');
+      }
 
       return prospectoCancelado;
     } catch (error) {

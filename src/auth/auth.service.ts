@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 
 import * as bcrypt from 'bcrypt';
 import { loginDTO } from './dto/login-auth.dto';
+import { Rol, Usuario } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -24,40 +25,21 @@ export class AuthService {
     return null;
   }
 
-  async loginUser(usuario: CreateAuthDto) {
+  async loginUser(usuario: Usuario) {
+    // Construimos el payload con los campos que quieras almacenar en el token
     const payload = {
-      // contrasena: usuario.contrasena,
+      sub: usuario.id,
       nombre: usuario.nombre,
       correo: usuario.correo,
       rol: usuario.rol,
+      empresaId: usuario.empresaId,
       activo: usuario.activo,
-
-      sub: usuario.id,
     };
 
+    // Retornamos el token y el usuario
     return {
       authToken: this.jwtService.sign(payload),
       usuario,
     };
-  }
-
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
-  }
-
-  findAll() {
-    return `This action returns all auth`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
   }
 }

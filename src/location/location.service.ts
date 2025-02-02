@@ -373,14 +373,15 @@ export class LocationService {
     requestId: number,
   ) {
     try {
-      // Crea un nuevo descuento
       console.log(`Creando descuento para clienteId: ${clienteId}`);
+      console.log('Mi porcentaje es: ', porcentaje);
+      console.log('el vendedor es: ', vendedorId);
+      console.log('el id de la solicitud es: ', requestId);
 
       const newDiscount = await this.prisma.descuento.create({
         data: {
           porcentaje: porcentaje,
-          clienteId: clienteId, // Asegúrate de que clienteId no sea undefined
-          // dePedido: true, // Marca el descuento como creado a partir de una solicitud
+          clienteId: clienteId,
         },
       });
 
@@ -392,61 +393,112 @@ export class LocationService {
         },
       });
 
-      // Enviar notificación al vendedor
-      const nuevaNotificacion = {
-        mensaje: `Tu solicitud de descuento ha sido aceptada y se ha creado un descuento de ${porcentaje}% para el cliente ${cliente.nombre}`,
-        descuentoId: newDiscount.id,
-      };
-      console.log('esto debería emitir ');
+      // Guardar la notificación en la base de datos
+      const notificacionGuardada = await this.prisma.notificacion.create({
+        data: {
+          mensaje: `Tu solicitud de descuento ha sido aceptada y se ha creado un descuento de ${porcentaje}% para el cliente ${cliente.nombre}`,
+          remitenteId: vendedorId, // CAMBIO: Ahora apunta a un usuario válido
+        },
+      });
 
-      this.locationGateway.emitNotificationToEmployee(
-        vendedorId,
-        nuevaNotificacion,
-      );
+      // Asociar la notificación al vendedor que hizo la solicitud
+      await this.prisma.notificacionesLeidas.create({
+        data: {
+          notificacionId: notificacionGuardada.id,
+          usuarioId: vendedorId,
+          leido: false,
+        },
+      });
 
       console.log(
-        'La nueva notificacion creada para el vendedor es: ',
-        nuevaNotificacion,
+        'Notificación guardada en la base de datos:',
+        notificacionGuardada,
       );
 
-      //ELIMINAR LA SOLICITUD
+      // Emitir la notificación usando la guardada en BD
+      this.locationGateway.emitNotificationToEmployee(
+        vendedorId,
+        notificacionGuardada,
+      );
+
+      console.log('Notificación enviada al vendedor: ', vendedorId);
+
+      // ELIMINAR LA SOLICITUD
       const deleteRequest = await this.prisma.solicitudDescuento.delete({
         where: {
           id: requestId,
         },
       });
 
-      console.log('La request eliminada es: ', deleteRequest);
+      console.log('Solicitud eliminada:', deleteRequest);
 
       return newDiscount;
     } catch (error) {
-      console.log(error);
+      console.log('Error al crear el descuento:', error);
     }
   }
 
   //ELIMINAR EL REGISTRO DE REQUEST DISCOUNT
+  // ELIMINAR EL REGISTRO DE REQUEST DISCOUNT
   async deleteDiscountRegist(vendedorId: number, requestId: number) {
     try {
+      console.log(`Rechazando solicitud de descuento con ID: ${requestId}`);
+
+      // Asegurar que el vendedor existe
+      const vendedor = await this.prisma.usuario.findUnique({
+        where: {
+          id: vendedorId,
+        },
+      });
+
+      if (!vendedor) {
+        console.error('No se encontró el vendedor con ID:', vendedorId);
+        throw new NotFoundException('Vendedor no encontrado');
+      }
+
+      console.log('Vendedor encontrado:', vendedor);
+
+      // Crear la notificación en la BD
+      const notificacionGuardada = await this.prisma.notificacion.create({
+        data: {
+          mensaje: `Tu solicitud de descuento ha sido rechazada por el administrador.`,
+          remitenteId: vendedorId,
+        },
+      });
+
+      console.log('Notificación creada:', notificacionGuardada);
+
+      // Asociar la notificación al vendedor que hizo la solicitud
+      await this.prisma.notificacionesLeidas.create({
+        data: {
+          notificacionId: notificacionGuardada.id,
+          usuarioId: vendedorId,
+          leido: false,
+        },
+      });
+
+      console.log('Notificación marcada como no leída para el vendedor.');
+
+      // Emitir la notificación al vendedor
+      this.locationGateway.emitNotificationToEmployee(
+        vendedorId,
+        notificacionGuardada,
+      );
+
+      console.log('Notificación enviada al vendedor:', vendedorId);
+
+      // Eliminar la solicitud de descuento
       const requestRegist = await this.prisma.solicitudDescuento.delete({
         where: {
           id: requestId,
         },
       });
-      const nuevaNotificacion = {
-        mensaje: `El administrador ha denegado su petición`,
-        // descuentoId: newDiscount.id,
-      };
 
-      console.log('esto debería emitir ');
-
-      this.locationGateway.emitNotificationToEmployee(
-        vendedorId,
-        nuevaNotificacion,
-      );
+      console.log('Solicitud de descuento eliminada:', requestRegist);
 
       return requestRegist;
     } catch (error) {
-      console.log(error);
+      console.error('Error al eliminar la solicitud de descuento:', error);
       throw new InternalServerErrorException(
         'Error al eliminar el registro de descuento',
       );

@@ -117,6 +117,11 @@ export class LocationGateway {
   // Método para emitir notificaciones a un empleado específico
   emitNotificationToEmployee(employeeId: number, notification: any) {
     const socketId = this.employees.get(employeeId);
+
+    console.log(
+      'ENTRANDO AL GATEWAY DE NOTIFICACION DE SELLER===================>',
+    );
+
     console.log(
       `Intentando emitir notificación al empleado ID: ${employeeId}, socketId: ${socketId}`,
     );

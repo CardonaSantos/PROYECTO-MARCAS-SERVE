@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   HttpCode,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { SaleService } from './sale.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
@@ -81,5 +82,38 @@ export class SaleController {
       );
     }
     return await this.saleService.remove(parsedId);
+  }
+
+  @Delete('/remove-sale/:id')
+  async removeSale(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('userId') userId: number,
+    @Body('adminPassword') adminPassword: string,
+    @Body('sucursalId') sucursalId: number,
+  ) {
+    console.log('entrando al controller');
+
+    // Validar los datos enviados
+    if (!userId || !adminPassword || !sucursalId) {
+      throw new BadRequestException(
+        'Se requiere el ID del usuario y la contraseña.',
+      );
+    }
+
+    // Llamar al service para manejar la lógica
+    const result = await this.saleService.removeSale(
+      id,
+      userId,
+      adminPassword,
+      sucursalId,
+    );
+
+    if (!result) {
+      throw new UnauthorizedException(
+        'Contraseña inválida o usuario no autorizado.',
+      );
+    }
+
+    return { message: 'Venta eliminada con éxito.' };
   }
 }

@@ -29,4 +29,7 @@ export class CreateAuthDto {
 
   @IsNumber()
   id: number;
+
+  @IsNumber()
+  empresaId: number;
 }

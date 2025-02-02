@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsEnum,
-  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -10,7 +9,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-
 import { Type } from 'class-transformer';
 import { MetodoPago } from '@prisma/client';
 
@@ -30,6 +28,9 @@ class ProductSaleDto {
 
 export class CreateSaleDto {
   @IsInt()
+  empresaId: number;
+
+  @IsInt()
   clienteId: number;
 
   @IsInt()
@@ -48,13 +49,39 @@ export class CreateSaleDto {
 
   @IsOptional()
   @IsInt()
-  registroVisitaId?: number; // Opcional si está asociado a una cita
+  registroVisitaId?: number;
 
   @IsNotEmpty()
-  @IsEnum(MetodoPago) // Enum validado
+  @IsEnum(MetodoPago)
   metodoPago: MetodoPago;
 
   @IsPositive()
   @IsNotEmpty()
   montoConDescuento: number;
+
+  // **Campos para crédito**
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  creditoInicial?: number;
+
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  numeroCuotas?: number;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  interes?: number;
+
+  @IsOptional()
+  @IsString()
+  dpi?: string;
+
+  @IsOptional()
+  comentario?: string;
+
+  @IsOptional()
+  testigos?: any; // JSON con la información de los testigos
 }

@@ -16,6 +16,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ValidatorUserPipe } from './pipes/validator-user/validator-user.pipe';
 import { AuthService } from 'src/auth/auth.service';
+import { Usuario } from '@prisma/client';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('users')
 export class UsersController {
@@ -27,11 +29,8 @@ export class UsersController {
   @Post()
   @UsePipes(new ValidationPipe())
   async create(@Body() createUserDto: CreateUserDto) {
-    const NewUser = await this.usersService.createUser(createUserDto);
-    console.log(createUserDto);
-
-    // return this.usersService.createUser(createUserDto);
-    return await this.authService.loginUser(NewUser);
+    const newUser: Usuario = await this.usersService.createUser(createUserDto);
+    return this.authService.loginUser(newUser);
   }
 
   //BUSCAR TODOS
@@ -48,23 +47,28 @@ export class UsersController {
     return await this.usersService.findOneUser(id);
   }
 
-  // @Get('greet')
-  // usingPipeController(
-  //   @Query(ValidatorUserPipe) query: { name: string; age: number },
-  // ) {
-  //   return `Hello ${query.name} you've ${query.age} years old`;
-  // }
-
   @Patch(':id')
   @UsePipes(new ValidationPipe())
   async updateOne(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    console.log('La data llegando es: ', updateUserDto);
-    console.log('El id del usuario es: ', id);
-
     return await this.usersService.updateOneUser(id, updateUserDto);
+  }
+
+  @Patch('/change-password/:id')
+  @UsePipes(new ValidationPipe())
+  async changePassword(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    console.log('Datos recibidos:', changePasswordDto);
+    console.log('ID del usuario a cambiar contraseña:', userId);
+
+    return await this.usersService.changeUserPassword(
+      userId,
+      changePasswordDto,
+    );
   }
 
   @Delete('/delete-all')
