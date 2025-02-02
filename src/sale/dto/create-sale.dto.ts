@@ -75,6 +75,10 @@ export class CreateSaleDto {
   @IsPositive()
   interes?: number;
 
+  @IsInt()
+  @IsPositive()
+  diasEntrePagos: number;
+
   @IsOptional()
   @IsString()
   dpi?: string;

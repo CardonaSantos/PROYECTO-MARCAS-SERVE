@@ -121,21 +121,36 @@ export class SaleService {
           // Crear el registro del crédito
           await prisma.credito.create({
             data: {
-              ventaId: newSale.id,
-              clienteId: createSaleDto.clienteId,
-              empresaId: createSaleDto.empresaId,
+              // ventaId: newSale.id,
+              venta: { connect: { id: newSale.id } }, // <-- Conexión correcta
+              cliente: { connect: { id: createSaleDto.clienteId } }, // Relación en lugar de clienteId
+              empresa: { connect: { id: createSaleDto.empresaId } }, // Solo relación, quita empresaId
               montoTotal: createSaleDto.montoConDescuento,
-              cuotaInicial: creditoInicial,
-              totalPagado: creditoInicial,
-              numeroCuotas,
-              interes,
+              // Monto y pagos
+              cuotaInicial: createSaleDto.creditoInicial ?? 0,
+              totalPagado: createSaleDto.creditoInicial ?? 0,
+
+              // Información del crédito
+              numeroCuotas: createSaleDto.numeroCuotas ?? 0,
+              interes: createSaleDto.interes ?? 0,
+
+              // Monto con interés
               montoConInteres: montoInteres,
-              montoTotalConInteres,
-              saldoPendiente,
+              montoTotalConInteres: montoTotalConInteres ?? montoInteres,
+
+              // Saldo pendiente después del pago inicial
+              saldoPendiente:
+                (montoTotalConInteres ?? montoInteres) -
+                (createSaleDto.creditoInicial ?? 0),
+
+              // Datos adicionales
               dpi: createSaleDto.dpi || '',
               comentario: createSaleDto.comentario || null,
-              testigos: createSaleDto.testigos || {},
+              testigos: createSaleDto.testigos ?? {}, // Objeto vacío en caso de `undefined`
               estado: 'ACTIVO',
+
+              // Configuración de pagos
+              diasEntrePagos: createSaleDto.diasEntrePagos ?? 30, // Default si no se envía
             },
           });
 
@@ -433,23 +448,59 @@ export class SaleService {
           }
 
           // Crear el registro del crédito
+          // await prisma.credito.create({
+          //   data: {
+          //     // ventaId: newSale.id,
+          //     venta: { connect: { id: newSale.id } }, // <-- Conexión correcta
+          //     clienteId: createSaleDto.clienteId,
+          //     empresaId: createSaleDto.empresaId,
+          //     montoTotal: createSaleDto.montoConDescuento,
+          //     cuotaInicial: creditoInicial,
+          //     totalPagado: creditoInicial,
+          //     numeroCuotas,
+          //     interes,
+          //     montoConInteres: montoInteres,
+          //     montoTotalConInteres,
+          //     saldoPendiente,
+          //     dpi: createSaleDto.dpi || '',
+          //     comentario: createSaleDto.comentario || null,
+          //     testigos: createSaleDto.testigos || {},
+          //     estado: 'ACTIVO',
+          //   },
+          // });
+
           await prisma.credito.create({
             data: {
-              ventaId: newSale.id,
-              clienteId: createSaleDto.clienteId,
-              empresaId: createSaleDto.empresaId,
+              // ventaId: newSale.id,
+              venta: { connect: { id: newSale.id } }, // <-- Conexión correcta
+              cliente: { connect: { id: createSaleDto.clienteId } }, // Relación en lugar de clienteId
+              empresa: { connect: { id: createSaleDto.empresaId } }, // Solo relación, quita empresaId
               montoTotal: createSaleDto.montoConDescuento,
-              cuotaInicial: creditoInicial,
-              totalPagado: creditoInicial,
-              numeroCuotas,
-              interes,
+              // Monto y pagos
+              cuotaInicial: createSaleDto.creditoInicial ?? 0,
+              totalPagado: createSaleDto.creditoInicial ?? 0,
+
+              // Información del crédito
+              numeroCuotas: createSaleDto.numeroCuotas ?? 0,
+              interes: createSaleDto.interes ?? 0,
+
+              // Monto con interés
               montoConInteres: montoInteres,
-              montoTotalConInteres,
-              saldoPendiente,
+              montoTotalConInteres: montoTotalConInteres ?? montoInteres,
+
+              // Saldo pendiente después del pago inicial
+              saldoPendiente:
+                (montoTotalConInteres ?? montoInteres) -
+                (createSaleDto.creditoInicial ?? 0),
+
+              // Datos adicionales
               dpi: createSaleDto.dpi || '',
               comentario: createSaleDto.comentario || null,
-              testigos: createSaleDto.testigos || {},
+              testigos: createSaleDto.testigos ?? {}, // Objeto vacío en caso de `undefined`
               estado: 'ACTIVO',
+
+              // Configuración de pagos
+              diasEntrePagos: createSaleDto.diasEntrePagos ?? 30, // Default si no se envía
             },
           });
 
