@@ -65,6 +65,12 @@ export class LocationGateway {
     this.startBroadcastingConnectedUsers();
   }
 
+  @Cron(CronExpression.EVERY_10_SECONDS)
+  handleCronVerUsuariosConectados() {
+    let x = this.getConnectedEmployees();
+    console.log('Los usuarios conectados, que son vendedores son: ', x);
+  }
+
   startBroadcastingConnectedUsers() {
     const totalConnectedUsers = this.getTotalConnectedUsers();
     const totalEmployees = this.getConnectedEmployees();
@@ -78,8 +84,27 @@ export class LocationGateway {
 
     this.admins.forEach((socketId) => {
       this.server.to(socketId).emit('updateConnectedUsers', data);
-      console.log('Emitiendo con CRON solo a admins...');
+      // console.log('Emitiendo con CRON solo a admins...');
     });
+  }
+
+  // En tu Gateway de NestJS
+  @SubscribeMessage('registerUser')
+  handleRegisterUser(client: Socket, userId: number) {
+    const role = client.handshake.query.role as string;
+
+    // Eliminar registros antiguos del usuario
+    this.employees.delete(userId);
+    this.admins.delete(userId);
+
+    // Registrar con el nuevo socketId
+    if (role === 'ADMIN') {
+      this.admins.set(userId, client.id);
+    } else {
+      this.employees.set(userId, client.id);
+    }
+
+    console.log(`[Re-registro] Usuario ${userId} -> Socket: ${client.id}`);
   }
 
   handleConnection(client: Socket) {
@@ -115,33 +140,60 @@ export class LocationGateway {
   }
 
   // Método para emitir notificaciones a un empleado específico
+  // emitNotificationToEmployee(employeeId: number, notification: any) {
+  //   const socketId = this.employees.get(employeeId);
+
+  //   console.log(
+  //     'ENTRANDO AL GATEWAY DE NOTIFICACION DE SELLER===================>',
+  //   );
+
+  //   console.log(
+  //     `Intentando emitir notificación al empleado ID: ${employeeId}, socketId: ${socketId}`,
+  //   );
+
+  //   this.printConnectedEmployees();
+
+  //   if (socketId) {
+  //     console.log(
+  //       'Emitiendo la notificación: ',
+  //       notification,
+  //       'Para el empleado con id: ',
+  //       employeeId,
+  //     );
+
+  //     this.server.to(socketId).emit('newNotificationToSeller', notification);
+  //   } else {
+  //     console.log(
+  //       `No se encontró socketId para el empleado con id: ${employeeId}`,
+  //     );
+  //   }
+  // }
+
+  // emitNotificationToEmployee(employeeId: number, notification: any) {
+  //   console.log('Enviando notifiacion a SELLERS..');
+  //   this.employees.forEach((socketId) => {
+  //     this.server.to(socketId).emit('newNotification', notification);
+  //   });
+  // }
+
+  // emitNotificationToEmployee(employeeId: number, notification: any) {
+  //   console.log(`Enviando notificación a empleado ${employeeId}...`);
+
+  //   const socketId = this.employees.get(employeeId); // Obtener el socketId del usuario específico
+  //   if (socketId) {
+  //     this.server.to(socketId).emit('newNotification', notification);
+  //   }
+  // }
+  //AHORA ENVIA A TODOS LOS USUARIOS, PERO COMO USAMOS LA FUNCION CON LOS EMPLOYEES, SOLO LOS ENVIA A ELLOS, EN EL FRONTEND FILTRAMOS, ASI QUE TODO GOOD :)
   emitNotificationToEmployee(employeeId: number, notification: any) {
-    const socketId = this.employees.get(employeeId);
+    console.log('Enviando notificación a TODOS los empleados...');
 
-    console.log(
-      'ENTRANDO AL GATEWAY DE NOTIFICACION DE SELLER===================>',
-    );
-
-    console.log(
-      `Intentando emitir notificación al empleado ID: ${employeeId}, socketId: ${socketId}`,
-    );
-
-    this.printConnectedEmployees();
-
-    if (socketId) {
-      console.log(
-        'Emitiendo la notificación: ',
-        notification,
-        'Para el empleado con id: ',
-        employeeId,
-      );
-
-      this.server.to(socketId).emit('newNotificationToSeller', notification);
-    } else {
-      console.log(
-        `No se encontró socketId para el empleado con id: ${employeeId}`,
-      );
-    }
+    this.employees.forEach((socketId) => {
+      this.server.to(socketId).emit('newNotification', {
+        ...notification,
+        targetUserId: employeeId, // Agregamos el ID del usuario objetivo
+      });
+    });
   }
 
   // emitRejectNotificationToEmployee(employeeId: number, notification: any) {
@@ -186,7 +238,7 @@ export class LocationGateway {
 
   @SubscribeMessage('sendLocation')
   async handleSendLocationToAdmin(client: Socket, locationData: location) {
-    console.log('Ubicación recibida: ', locationData);
+    // console.log('Ubicación recibida: ', locationData);
 
     // Intentar encontrar una ubicación existente para este usuario
     const existingLocation = await this.locationService.findLocationByUserId(
@@ -246,8 +298,13 @@ export class LocationGateway {
     });
   }
 
+  // private getUserIdFromClient(client: Socket): number {
+  //   return parseInt(client.handshake.query.userId as string, 10);
+  // }
+
   private getUserIdFromClient(client: Socket): number {
-    return parseInt(client.handshake.query.userId as string, 10);
+    const userId = client.handshake.query.userId as string;
+    return parseInt(userId, 10); // Conversión robusta
   }
 
   @SubscribeMessage('requestDiscount')

@@ -13,10 +13,10 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// generator seed {
-//   provider = "prisma-db-seed"
-//   // optional config
-// }
+generator seed {
+  provider = "prisma-db-seed"
+  // optional config
+}
 
 
 model IngresosEmpresa {
