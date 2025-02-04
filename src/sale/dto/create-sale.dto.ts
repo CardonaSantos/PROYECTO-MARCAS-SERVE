@@ -12,7 +12,7 @@ import {
 import { Type } from 'class-transformer';
 import { MetodoPago } from '@prisma/client';
 
-class ProductSaleDto {
+export class ProductSaleDto {
   @IsInt()
   productoId: number;
 
