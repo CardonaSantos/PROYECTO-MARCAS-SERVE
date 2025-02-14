@@ -27,7 +27,8 @@ export class SaleController {
   // HACER VENTA PARA REGISTRO DE VISITA
   @Post('/sale-for-regis')
   async createSaleForRegist(@Body() createSaleDto: CreateSaleDto) {
-    return await this.saleService.createSaleForRegist(createSaleDto);
+    // return await this.saleService.createSaleForRegist(createSaleDto);
+    return await this.saleService.createSaleWithVisit(createSaleDto);
   }
 
   @Get()

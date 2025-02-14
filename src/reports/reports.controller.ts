@@ -76,8 +76,8 @@ export class ReportsController {
     @Query('departamento') departamento?: string,
   ) {
     const buffer = await this.reportsService.generarExcelClientesFiltrados(
-      from ? new Date(from) : undefined,
-      to ? new Date(to) : undefined,
+      from,
+      to,
       minCompras ? parseInt(minCompras) : undefined,
       maxCompras ? parseInt(maxCompras) : undefined,
       minGastado ? parseFloat(minGastado) : undefined,
@@ -109,8 +109,8 @@ export class ReportsController {
   ) {
     try {
       // Validar las fechas
-      const fromDate = from ? new Date(from) : undefined;
-      const toDate = to ? new Date(to) : undefined;
+      const fromDate = from;
+      const toDate = to;
 
       const buffer = await this.reportsService.generarExcelProspectos(
         fromDate,
@@ -145,8 +145,8 @@ export class ReportsController {
     @Query('estado') estado?: EstadoVisita,
     @Query('motivo') motivo?: MotivoVisita,
   ) {
-    const fromDate = from ? new Date(from) : undefined;
-    const toDate = to ? new Date(to) : undefined;
+    const fromDate = from;
+    const toDate = to;
 
     const buffer = await this.reportsService.generarExcelVisitas(
       fromDate,
@@ -176,8 +176,8 @@ export class ReportsController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
   ) {
-    const fromDate = from ? new Date(from) : undefined;
-    const toDate = to ? new Date(to) : undefined;
+    const fromDate = from;
+    const toDate = to;
 
     const buffer = await this.reportsService.generarExcelInventario(
       fromDate,
@@ -209,8 +209,8 @@ export class ReportsController {
     @Query('to') to?: string,
     @Query('proveedor') proveedorId?: string,
   ) {
-    const fromDate = from ? new Date(from) : undefined;
-    const toDate = to ? new Date(to) : undefined;
+    const fromDate = from;
+    const toDate = to;
     const proveedor = proveedorId ? parseInt(proveedorId) : undefined;
 
     const buffer = await this.reportsService.generarExcelEntregas(
@@ -269,8 +269,8 @@ export class ReportsController {
     @Query('to') to?: string,
   ) {
     try {
-      const fromDate = from ? new Date(from) : undefined;
-      const toDate = to ? new Date(to) : undefined;
+      const fromDate = from;
+      const toDate = to;
 
       const buffer = await this.reportsService.generarReporteUsuarios(
         fromDate,
@@ -288,5 +288,35 @@ export class ReportsController {
       console.error('Error al generar el reporte de usuarios:', error);
       res.status(500).send('Error al generar el reporte de usuarios.');
     }
+  }
+
+  //CONSEGUIR REPORTE DE CREDITOS
+  @Get('/creditos/excel')
+  async getCreditosExcel(
+    @Res() res: Response,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('proveedor') proveedorId?: string,
+  ) {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+    const proveedor = proveedorId ? parseInt(proveedorId) : undefined;
+
+    const buffer = await this.reportsService.generarCreditosReport(
+      fromDate,
+      toDate,
+      // proveedor,
+    );
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=historial-entregas.xlsx',
+    );
+
+    res.send(buffer);
   }
 }

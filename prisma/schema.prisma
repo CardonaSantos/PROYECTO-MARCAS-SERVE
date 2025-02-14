@@ -81,6 +81,17 @@ model Producto {
   codigoProducto String          @unique// NUEVO A APLICAR
   creadoEn    DateTime           @default(now())
   actualizadoEn DateTime         @updatedAt
+  //
+  imagenes    ImagenProducto[]    // Relación con las imágenes
+}
+
+
+model ImagenProducto {
+  id         Int      @id @default(autoincrement())
+  url        String   // URL de la imagen (Cloudinary, S3, etc.)
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  productoId Int      // ID del producto al que pertenece
+  creadoEn   DateTime @default(now())
 }
 
 model ProductoCategoria {
@@ -474,7 +485,6 @@ enum EstadoCredito {
   ACTIVO
   CERRADO
 }
-
 
 enum Rol {
   ADMIN

@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -82,6 +83,10 @@ export class CreateSaleDto {
   @IsOptional()
   @IsString()
   dpi?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  visita?: boolean;
 
   @IsOptional()
   comentario?: string;

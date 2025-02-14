@@ -369,12 +369,6 @@ export class SaleService {
         // 3. Crear la venta
         const newSale = await this.createSaleRecord(prisma, createSaleDto);
 
-        // 4. Manejar lógica de crédito si es necesario
-        // const ingresoIncrement =
-        //   createSaleDto.metodoPago === 'CREDITO'
-        //     ? await this.handleCreditSale(prisma, createSaleDto, newSale)
-        //     : newSale.montoConDescuento;
-
         const ingresoIncrement =
           createSaleDto.metodoPago === 'CREDITO'
             ? await this.handleCreditSale(prisma, createSaleDto, newSale)
@@ -390,6 +384,67 @@ export class SaleService {
         );
 
         // 6. Crear notificación
+        await this.createSaleNotification(newSale, createSaleDto);
+
+        return newSale;
+      })
+      .catch((error) => {
+        console.error('Error en transacción:', error);
+        throw new Error(`Error al crear la venta: ${error.message}`);
+      });
+  }
+
+  //CREAR VENTA CON VINCULACION DE VISITA
+
+  async createSaleWithVisit(createSaleDto: CreateSaleDto) {
+    console.log('Datos recibidos:', JSON.stringify(createSaleDto));
+    console.log('LA DATA RECIBIDA ES:::::::::::');
+    console.log(createSaleDto);
+
+    return await this.prisma
+      .$transaction(async (prisma) => {
+        // 1. Validación inicial
+        if (!createSaleDto.empresaId) {
+          throw new Error('El ID de empresa es requerido');
+        }
+
+        // 2. Verificar stock y actualizar en una sola operación
+        await this.handleStockValidation(prisma, createSaleDto.productos);
+
+        // 3. Crear la venta
+        const newSale = await this.createSaleRecord(prisma, createSaleDto);
+
+        let ingresoIncrement = 0;
+        if (createSaleDto.metodoPago === 'CREDITO') {
+          ingresoIncrement = await this.handleCreditSale(
+            prisma,
+            createSaleDto,
+            newSale,
+          );
+        } else {
+          ingresoIncrement = newSale.montoConDescuento;
+        }
+
+        console.log('Ingreso Incrementado:', ingresoIncrement);
+
+        // 4. Actualizar ingresos de la empresa
+        await this.updateCompanyIncome(
+          prisma,
+          createSaleDto.empresaId,
+          ingresoIncrement,
+        );
+
+        // 5. Vincular la venta con la visita si existe un ID de visita
+        if (createSaleDto.registroVisitaId) {
+          await prisma.visita.update({
+            where: { id: createSaleDto.registroVisitaId },
+            data: {
+              ventas: { connect: { id: newSale.id } },
+            },
+          });
+        }
+
+        // 6. Crear notificación de la venta
         await this.createSaleNotification(newSale, createSaleDto);
 
         return newSale;
@@ -490,7 +545,8 @@ export class SaleService {
     // Actualizar monto total de la venta con interés
     await prisma.venta.update({
       where: { id: sale.id },
-      data: { monto: montoTotalConInteres },
+      // data: { monto: montoTotalConInteres },
+      data: { monto: creditoInicial },
     });
 
     return creditoInicial;
@@ -526,11 +582,74 @@ export class SaleService {
       currency: 'GTQ',
     }).format(sale.montoConDescuento);
 
-    await this.notificationService.createNotification({
-      mensaje: `${vendedor.nombre} ha registrado una venta de ${formattedAmount} para ${cliente.nombre}.`,
-      remitenteId: vendedor.id,
-    });
+    if (dto.visita || dto.registroVisitaId) {
+      try {
+        await this.notificationService.createNotification({
+          mensaje: `${vendedor.nombre} ha registrado una venta durante una visita, de ${formattedAmount} para ${cliente.nombre}.`,
+          remitenteId: vendedor.id,
+        });
+        console.log(
+          '✅ Notificación de venta en visita enviada correctamente.',
+        );
+        return; // Evita que se genere la segunda notificación
+      } catch (error) {
+        console.error('❌ Error al crear notificación de visita:', error);
+        return; // Evita la segunda notificación en caso de error
+      }
+    }
+
+    // Solo se ejecuta si la venta NO fue en una visita
+    try {
+      await this.notificationService.createNotification({
+        mensaje: `${vendedor.nombre} ha registrado una venta de ${formattedAmount} para ${cliente.nombre}.`,
+        remitenteId: vendedor.id,
+      });
+      console.log('✅ Notificación de venta general enviada correctamente.');
+    } catch (error) {
+      console.error('❌ Error al crear notificación de venta:', error);
+    }
   }
+
+  // private async createSaleNotification(sale: Venta, dto: CreateSaleDto) {
+  //   const [cliente, vendedor] = await Promise.all([
+  //     this.prisma.cliente.findUnique({ where: { id: dto.clienteId } }),
+  //     this.prisma.usuario.findUnique({ where: { id: dto.vendedorId } }),
+  //   ]);
+
+  //   if (!cliente || !vendedor) return;
+
+  //   const formattedAmount = new Intl.NumberFormat('es-GT', {
+  //     style: 'currency',
+  //     currency: 'GTQ',
+  //   }).format(sale.montoConDescuento);
+
+  //   // if (dto.visita === true) {
+  //   //   await this.notificationService.createNotification({
+  //   //     mensaje: `${vendedor.nombre} ha registrado una venta durante una vista, de ${formattedAmount} para ${cliente.nombre}.`,
+  //   //     remitenteId: vendedor.id,
+  //   //   });
+  //   // }
+
+  //   // Validar si la venta ocurrió en una visita
+  //   if (dto.visita || dto.registroVisitaId) {
+  //     try {
+  //       await this.notificationService.createNotification({
+  //         mensaje: `${vendedor.nombre} ha registrado una venta durante una visita, de ${formattedAmount} para ${cliente.nombre}.`,
+  //         remitenteId: vendedor.id,
+  //       });
+  //       console.log(
+  //         '✅ Notificación de venta en visita enviada correctamente.',
+  //       );
+  //     } catch (error) {
+  //       console.error('❌ Error al crear notificación de visita:', error);
+  //     }
+  //   }
+
+  //   await this.notificationService.createNotification({
+  //     mensaje: `${vendedor.nombre} ha registrado una venta de ${formattedAmount} para ${cliente.nombre}.`,
+  //     remitenteId: vendedor.id,
+  //   });
+  // }
 
   async createSaleForRegist(createSaleDto: CreateSaleDto) {
     console.log('Los datos llegando son: ', createSaleDto);
@@ -976,64 +1095,164 @@ export class SaleService {
     }
   }
   //
+  // async removeSale(
+  //   saleId: number,
+  //   userId: number,
+  //   adminPassword: string,
+  //   sucursalId: number,
+  // ): Promise<boolean> {
+  //   // Buscar al usuario en la base de datos
+  //   const user = await this.prisma.usuario.findUnique({
+  //     where: { id: userId },
+  //   });
+
+  //   console.log('buscnado user: ', user);
+
+  //   if (!user) {
+  //     throw new NotFoundException('Usuario no encontrado.');
+  //   }
+
+  //   // Validar la contraseña del usuario
+  //   const isPasswordValid = await bcrypt.compare(
+  //     adminPassword,
+  //     user.contrasena,
+  //   );
+  //   if (!isPasswordValid) {
+  //     throw new UnauthorizedException('Contraseña inválida.');
+  //   }
+
+  //   // Verificar que la venta exista
+  //   const sale = await this.prisma.venta.findUnique({
+  //     where: { id: saleId },
+  //   });
+
+  //   if (!sale) {
+  //     throw new NotFoundException('Venta no encontrada.');
+  //   }
+
+  //   // Eliminar la venta
+  //   await this.prisma.venta.delete({
+  //     where: { id: saleId },
+  //   });
+
+  //   //eliminar la ganancia y venta contador:
+  //   await this.prisma.ingresosEmpresa.update({
+  //     where: {
+  //       id: sucursalId,
+  //     },
+  //     data: {
+  //       saldoActual: {
+  //         decrement: sale.montoConDescuento,
+  //       },
+  //       numeroVentas: {
+  //         decrement: 1,
+  //       },
+  //       egresosTotales: {
+  //         increment: sale.montoConDescuento,
+  //       },
+  //     },
+  //   });
+
+  //   return true;
+  // }
+
   async removeSale(
     saleId: number,
     userId: number,
     adminPassword: string,
     sucursalId: number,
   ): Promise<boolean> {
-    // Buscar al usuario en la base de datos
+    console.log(`Iniciando proceso de eliminación de venta con ID: ${saleId}`);
+
+    // Buscar al usuario
     const user = await this.prisma.usuario.findUnique({
       where: { id: userId },
     });
 
-    console.log('buscnado user: ', user);
-
     if (!user) {
+      console.log(`Usuario con ID ${userId} no encontrado.`);
       throw new NotFoundException('Usuario no encontrado.');
     }
 
-    // Validar la contraseña del usuario
+    // Validar contraseña
     const isPasswordValid = await bcrypt.compare(
       adminPassword,
       user.contrasena,
     );
     if (!isPasswordValid) {
+      console.log(`Contraseña inválida para el usuario con ID ${userId}`);
       throw new UnauthorizedException('Contraseña inválida.');
     }
 
-    // Verificar que la venta exista
+    // Obtener venta con sus créditos asociados
     const sale = await this.prisma.venta.findUnique({
       where: { id: saleId },
+      include: {
+        Credito: true, // Incluir créditos vinculados
+      },
     });
 
     if (!sale) {
+      console.log(`Venta con ID ${saleId} no encontrada.`);
       throw new NotFoundException('Venta no encontrada.');
     }
 
-    // Eliminar la venta
+    console.log(`Venta encontrada: `, sale);
+
+    let totalPagado = 0;
+    let montoCreditoPendiente = 0;
+
+    // Calcular pagos de cada crédito asociado
+    if (sale.Credito) {
+      console.log(`Venta con ID ${saleId} tiene créditos asociados.`);
+      for (const credito of sale.Credito) {
+        console.log(`Consultando pagos para crédito con ID ${credito.id}`);
+        const pagos = await this.prisma.pagoCredito.findMany({
+          where: { creditoId: credito.id },
+        });
+
+        // Sumar los pagos realizados para este crédito
+        const pagosTotales = pagos.reduce((sum, pago) => sum + pago.monto, 0);
+        console.log(
+          `Pagos encontrados para crédito ${credito.id}:`,
+          pagos,
+          `Total pagado: ${pagosTotales}`,
+        );
+        totalPagado += pagosTotales;
+
+        // Calcular el saldo pendiente del crédito
+        montoCreditoPendiente += credito.montoTotalConInteres - pagosTotales;
+      }
+    } else {
+      console.log(`Venta con ID ${saleId} no tiene créditos asociados.`);
+    }
+
+    // Eliminar la venta (esto eliminará créditos y pagos por cascade)
+    console.log(`Eliminando la venta con ID ${saleId}...`);
     await this.prisma.venta.delete({
       where: { id: saleId },
     });
 
-    //eliminar la ganancia y venta contador:
+    // Actualizar saldos de la empresa
+    console.log(
+      `Actualizando saldos de la empresa en sucursal con ID ${sucursalId}...`,
+    );
     await this.prisma.ingresosEmpresa.update({
-      where: {
-        id: sucursalId,
-      },
+      where: { id: sucursalId },
       data: {
         saldoActual: {
-          decrement: sale.montoConDescuento,
+          decrement: sale.montoConDescuento, // Solo descontar el monto de la venta
         },
         numeroVentas: {
           decrement: 1,
         },
         egresosTotales: {
-          increment: sale.montoConDescuento,
+          increment: montoCreditoPendiente, // Solo incrementar el saldo pendiente del crédito
         },
       },
     });
 
+    console.log(`Proceso completado con éxito para la venta con ID ${saleId}`);
     return true;
   }
 }

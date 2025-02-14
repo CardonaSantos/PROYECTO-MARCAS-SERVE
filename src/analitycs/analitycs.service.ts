@@ -183,12 +183,21 @@ export class AnalitycsService {
           },
         },
         select: {
+          // montoConDescuento: true,
           montoConDescuento: true,
+          metodoPago: true,
+          monto: true,
         },
       });
 
       ventasTotalMonto.forEach((venta) => {
-        montoTotalMes += venta.montoConDescuento;
+        // montoTotalMes += venta.montoConDescuento;
+
+        if (venta.metodoPago === 'CREDITO') {
+          montoTotalMes += venta.monto;
+        } else {
+          montoTotalMes += venta.montoConDescuento;
+        }
       });
 
       return montoTotalMes;
@@ -231,11 +240,18 @@ export class AnalitycsService {
         },
         select: {
           montoConDescuento: true,
+          metodoPago: true,
+          monto: true,
         },
       });
 
       ventasTotalMonto.forEach((venta) => {
-        montoTotalDia += venta.montoConDescuento;
+        // montoTotalDia += venta.montoConDescuento;
+        if (venta.metodoPago === 'CREDITO') {
+          montoTotalDia += venta.monto;
+        } else {
+          montoTotalDia += venta.montoConDescuento;
+        }
       });
 
       return montoTotalDia; // Devolver el monto total del día
@@ -278,12 +294,20 @@ export class AnalitycsService {
         },
         select: {
           montoConDescuento: true,
+          metodoPago: true,
+          monto: true,
         },
       });
 
       // Sumar los montos de las ventas
       ventasTotalMonto.forEach((venta) => {
-        montoTotalSemana += venta.montoConDescuento;
+        // montoTotalSemana += venta.monto;
+
+        if (venta.metodoPago === 'CREDITO') {
+          montoTotalSemana += venta.monto;
+        } else {
+          montoTotalSemana += venta.montoConDescuento;
+        }
       });
 
       return montoTotalSemana; // Devolver el monto total de la semana

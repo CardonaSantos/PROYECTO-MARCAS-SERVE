@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  BadRequestException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { DeliveryStockService } from './delivery-stock.service';
 // import { CreateDeliveryStockDto } from './dto/create-delivery-stock.dto';
@@ -47,5 +49,23 @@ export class DeliveryStockController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.deliveryStockService.remove(+id);
+  }
+
+  @Delete('/delete-regist/:registID')
+  async removeOneRegist(
+    @Param('registID', ParseIntPipe) registID: number,
+    @Body() body: { password: string; userId: number },
+  ) {
+    const { password, userId } = body;
+
+    if (!password || !userId) {
+      throw new BadRequestException('Se requiere contraseña y ID de usuario');
+    }
+
+    return this.deliveryStockService.removeOneRegist(
+      registID,
+      userId,
+      password,
+    );
   }
 }

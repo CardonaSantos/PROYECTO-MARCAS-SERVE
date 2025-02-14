@@ -87,13 +87,6 @@ export class NotificationsService {
     try {
       // Buscar en NotificacionesLeidas las n
       // logotificaciones del administrador
-      console.log('Mi id es: ', adminId);
-      console.log(
-        'El usuario es: ',
-        await this.prisma.usuario.findUnique({
-          where: { id: adminId },
-        }),
-      );
 
       const notificationsForAdmin =
         await this.prisma.notificacionesLeidas.findMany({
@@ -116,11 +109,6 @@ export class NotificationsService {
         remitenteId: item.notificacion.remitenteId,
         creadoEn: item.notificacion.creadoEn,
       }));
-
-      console.log(
-        'Las notifiaciones de mi admin son: ',
-        formattedNotifications,
-      );
 
       return formattedNotifications;
     } catch (error) {

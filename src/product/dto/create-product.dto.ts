@@ -20,4 +20,7 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsNumber({}, { each: true }) // Cada ID debe ser un número
   categoriaIds: number[]; // Array de IDs de categorías
+
+  @IsArray()
+  fotos: string[];
 }

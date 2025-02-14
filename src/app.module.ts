@@ -24,6 +24,8 @@ import { ReportsModule } from './reports/reports.module';
 import { RecoveryModule } from './recovery/recovery.module';
 import { CreditoModule } from './credito/credito.module';
 import { SaldosModule } from './saldos/saldos.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CloudinaryProvider } from './cloudinary/config/cloudinaryConfig';
 
 @Module({
   imports: [
@@ -53,8 +55,9 @@ import { SaldosModule } from './saldos/saldos.module';
     RecoveryModule,
     CreditoModule,
     SaldosModule,
+    CloudinaryModule,
   ],
   controllers: [],
-  providers: [LocationGateway],
+  providers: [LocationGateway, CloudinaryProvider], //PONER EL CLOUDINARY PROVIDER PORQUE LLEVA LAS CONFIG
 })
 export class AppModule {}

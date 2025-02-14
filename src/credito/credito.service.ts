@@ -140,6 +140,43 @@ export class CreditoService {
 
     console.log('El crédito actualizado es: ', creditoActualizar);
 
+    console.log('Actualizamos la venta');
+    const ventaUpdate = await this.prisma.venta.findUnique({
+      where: {
+        id: createPayment.ventaId,
+      },
+    });
+
+    if (!ventaUpdate) {
+      throw new BadRequestException('Faltan datos para el registro');
+    }
+
+    await this.prisma.venta.update({
+      where: {
+        id: ventaUpdate.id,
+      },
+      data: {
+        monto: {
+          increment: createPayment.monto,
+        },
+      },
+    });
+
+    console.log('Actualizar los ingresos de la empresa...');
+    await this.prisma.ingresosEmpresa.update({
+      where: {
+        id: createPayment.empresaId,
+      },
+      data: {
+        ingresosTotales: {
+          increment: createPayment.monto,
+        },
+        saldoActual: {
+          increment: createPayment.monto,
+        },
+      },
+    });
+
     return { pago, creditoActualizado: creditoActualizar };
   }
 
@@ -222,12 +259,14 @@ export class CreditoService {
     try {
       console.log('Los datos entrantes al service son: ', deleteCreditDto);
 
+      // Verificar que el usuario administrador existe
       const admin = await this.prisma.usuario.findUnique({
         where: {
           id: deleteCreditDto.userId,
         },
       });
 
+      // Validar la contraseña del administrador
       const contraseñaValida = await bcrypt.compare(
         deleteCreditDto.adminPassword,
         admin.contrasena,
@@ -237,41 +276,64 @@ export class CreditoService {
         throw new BadRequestException('Usuario no autenticado');
       }
 
-      const creditToDelete = await this.prisma.credito.delete({
+      // Obtener la venta asociada al crédito
+      const creditToDelete = await this.prisma.credito.findUnique({
+        where: {
+          id: deleteCreditDto.creditoId,
+        },
+        include: {
+          venta: true, // Asegurarnos de que obtenemos la venta asociada al crédito
+        },
+      });
+
+      if (!creditToDelete || !creditToDelete.venta) {
+        throw new BadRequestException(
+          'Error al encontrar el registro de crédito o la venta asociada',
+        );
+      }
+
+      // Obtener el monto pagado de la venta
+      const montoPagado = creditToDelete.venta.monto; // En este caso, monto pagado es 150
+      console.log(`Monto pagado por la venta: Q${montoPagado}`);
+
+      // Eliminar el crédito
+      await this.prisma.credito.delete({
         where: {
           id: deleteCreditDto.creditoId,
         },
       });
 
-      if (!creditToDelete) {
-        throw new BadRequestException(
-          'Error al encontrar registro de credito a borrar',
-        );
-      }
+      console.log(
+        `Crédito con ID ${creditToDelete.id} eliminado correctamente`,
+      );
 
-      //actualizar los cobros:
+      // Actualizar los saldos de la empresa
       await this.prisma.ingresosEmpresa.update({
         where: {
           id: deleteCreditDto.empresaId,
         },
         data: {
           saldoActual: {
-            decrement: creditToDelete.totalPagado,
-          },
-          numeroVentas: {
-            decrement: 1,
+            // Decrementar solo el monto pagado en la venta
+            decrement: montoPagado,
           },
           egresosTotales: {
-            increment: creditToDelete.totalPagado,
+            // Decrementar solo el monto pagado en la venta
+            increment: montoPagado,
+          },
+          numeroVentas: {
+            // Decrementar el número de ventas
+            decrement: 1,
           },
         },
       });
 
+      console.log('Saldo de la empresa actualizado correctamente');
       return creditToDelete;
     } catch (error) {
       console.log(error);
       throw new BadRequestException(
-        'Error al encontrar registro de credito a borrar',
+        'Error al procesar la eliminación del crédito',
       );
     }
   }

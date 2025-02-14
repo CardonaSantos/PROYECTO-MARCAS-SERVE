@@ -18,4 +18,7 @@ export class createPaymentDto {
 
   @IsInt()
   userId: number;
+
+  @IsInt()
+  ventaId: number;
 }
