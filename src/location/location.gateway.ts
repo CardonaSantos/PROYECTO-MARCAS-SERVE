@@ -68,7 +68,7 @@ export class LocationGateway {
   @Cron(CronExpression.EVERY_10_SECONDS)
   handleCronVerUsuariosConectados() {
     let x = this.getConnectedEmployees();
-    console.log('Los usuarios conectados, que son vendedores son: ', x);
+    // console.log('Los usuarios conectados, que son vendedores son: ', x);
   }
 
   startBroadcastingConnectedUsers() {
@@ -186,7 +186,7 @@ export class LocationGateway {
   // }
   //AHORA ENVIA A TODOS LOS USUARIOS, PERO COMO USAMOS LA FUNCION CON LOS EMPLOYEES, SOLO LOS ENVIA A ELLOS, EN EL FRONTEND FILTRAMOS, ASI QUE TODO GOOD :)
   emitNotificationToEmployee(employeeId: number, notification: any) {
-    console.log('Enviando notificación a TODOS los empleados...');
+    // console.log('Enviando notificación a TODOS los empleados...');
 
     this.employees.forEach((socketId) => {
       this.server.to(socketId).emit('newNotification', {
@@ -230,7 +230,7 @@ export class LocationGateway {
       } else {
         this.employees.delete(userId);
       }
-      console.log(`${role} desconectado: ${client.id} Usuario ID: ${userId}`);
+      // console.log(`${role} desconectado: ${client.id} Usuario ID: ${userId}`);
     }
 
     // this.updateAdmins(); // Notificar después de la desconexión
