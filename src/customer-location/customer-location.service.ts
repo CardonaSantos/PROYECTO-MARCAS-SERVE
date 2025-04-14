@@ -106,6 +106,7 @@ export class CustomerLocationService {
       );
     }
   }
+
   async findAllDepartamentos() {
     try {
       const departamentos = await this.prisma.departamento.findMany({});

@@ -12,63 +12,82 @@ import { CreateCustomerFromProspectDto } from './dto/create-customer-from-prospe
 @Injectable()
 export class CustomersService {
   constructor(private readonly prisma: PrismaService) {}
-
   async create(createCustomerDto: CreateCustomerDto) {
+    const {
+      nombre,
+      apellido,
+      correo,
+      direccion,
+      telefono,
+      categoriasInteres,
+      departamentoId,
+      municipioId,
+      preferenciaContacto,
+      presupuestoMensual,
+      tipoCliente,
+      volumenCompra,
+      comentarios,
+      latitud,
+      longitud,
+      descuentoInicial, // ⚠️ Lo extraemos
+    } = createCustomerDto;
+
     try {
-      // Crear el cliente primero
-      const newCustomer = await this.prisma.cliente.create({
-        data: {
-          nombre: createCustomerDto.nombre,
-          apellido: createCustomerDto.apellido,
-          correo: createCustomerDto.correo,
-          direccion: createCustomerDto.direccion,
-          telefono: createCustomerDto.telefono,
-          categoriasInteres: createCustomerDto.categoriasInteres,
-          departamentoId: createCustomerDto.departamentoId,
-          municipioId: createCustomerDto.municipioId,
-          preferenciaContacto: createCustomerDto.preferenciaContacto,
-          presupuestoMensual: createCustomerDto.presupuestoMensual,
-          tipoCliente: createCustomerDto.tipoCliente,
-          volumenCompra: createCustomerDto.volumenCompra,
-          comentarios: createCustomerDto.comentarios,
-        },
-      });
-
-      const { latitud, longitud } = createCustomerDto;
-
-      // Verificar si hay latitud y longitud
-      if (latitud && longitud && newCustomer) {
-        console.log(
-          'Parámetros para localización disponibles, creando registro',
-        );
-
-        // Crear la ubicación del cliente y obtener el nuevo ID
-        const newLocationCustomer = await this.prisma.ubicacionCliente.create({
+      return await this.prisma.$transaction(async (tx) => {
+        // 1. Crear el cliente
+        const newCustomer = await tx.cliente.create({
           data: {
-            latitud: latitud,
-            longitud: longitud,
-            clienteId: newCustomer.id,
+            nombre,
+            apellido,
+            correo,
+            direccion,
+            telefono,
+            categoriasInteres,
+            departamentoId,
+            municipioId,
+            preferenciaContacto,
+            presupuestoMensual,
+            tipoCliente,
+            volumenCompra,
+            comentarios,
           },
         });
 
-        // Actualizar el cliente con la ubicación creada
-        if (newLocationCustomer) {
-          console.log('Cliente disponible, actualizando con localización');
-
-          await this.prisma.cliente.update({
-            where: {
-              id: newCustomer.id,
+        // 2. Crear ubicación si hay coordenadas
+        if (latitud && longitud) {
+          const newLocationCustomer = await tx.ubicacionCliente.create({
+            data: {
+              latitud,
+              longitud,
+              clienteId: newCustomer.id,
             },
+          });
+
+          // Actualizar cliente con la ubicación
+          await tx.cliente.update({
+            where: { id: newCustomer.id },
             data: {
               ubicacionId: newLocationCustomer.id,
             },
           });
         }
-      }
 
-      return newCustomer;
+        // 3. Si hay un descuento válido, crearlo
+        if (descuentoInicial && descuentoInicial > 0) {
+          await tx.descuento.create({
+            data: {
+              porcentaje: descuentoInicial,
+              clienteId: newCustomer.id,
+              activo: true,
+              usado: false,
+              dePedido: false,
+            },
+          });
+        }
+
+        return newCustomer;
+      });
     } catch (error) {
-      // Manejo de errores
       console.error('Error al crear el cliente: ', error);
       throw new BadRequestException('Error al crear cliente');
     }

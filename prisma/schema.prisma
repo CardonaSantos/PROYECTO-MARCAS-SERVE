@@ -73,6 +73,8 @@ model Producto {
   nombre      String
   descripcion String?
   precio      Float              // Precio de venta del producto
+  costo       Float?   @default(0)           // Precio de venta del producto
+
   stock       Stock?             // Relación uno a uno con Stock
   categorias  ProductoCategoria[] // Relación a la tabla intermedia ProductoCategoria
   ventas      VentaProducto[]    // Relación a la tabla intermedia VentaProducto

@@ -12,6 +12,10 @@ export class CreateProductDto {
   @IsNotEmpty()
   precio: number; // Precio de venta
 
+  @IsNumber()
+  @IsNotEmpty()
+  precioCosto?: number; // Precio de costo
+
   @IsString()
   @IsNotEmpty()
   codigoProducto: string;

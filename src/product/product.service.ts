@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
@@ -8,127 +9,39 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PrismaService } from 'src/prisma.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+//PARA CARGA MASIVA
+import { readFileSync } from 'fs';
+import * as csv from 'csv-parser';
+import { createReadStream } from 'fs';
+import { promisify } from 'util';
+import * as path from 'path';
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
+
   constructor(
     private readonly prisma: PrismaService,
 
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // async createProduct(createProductDto: CreateProductDto) {
-  //   const { nombre, descripcion, precio, categoriaIds, codigoProducto } =
-  //     createProductDto;
-
-  //   let precioInt = Number(precio);
-
-  //   try {
-  //     const product = await this.prisma.producto.create({
-  //       data: {
-  //         nombre,
-  //         descripcion,
-  //         precio: precioInt,
-  //         codigoProducto,
-  //         categorias: {
-  //           create: categoriaIds.map((categoriaId) => ({
-  //             categoria: { connect: { id: categoriaId } },
-  //           })),
-  //         },
-  //       },
-  //       include: {
-  //         categorias: true,
-  //       },
-  //     });
-
-  //     console.log('Producto creado: ', product);
-
-  //     return product;
-  //   } catch (error) {
-  //     console.error(error);
-  //     throw new InternalServerErrorException('Error al crear producto');
-  //   }
-  // }
-
-  // async createProduct(createProductDto: CreateProductDto) {
-  //   const { nombre, descripcion, precio, categoriaIds, codigoProducto, fotos } =
-  //     createProductDto;
-
-  //   let precioInt = Number(precio);
-
-  //   console.log('El numero de fotos llegando es: ', fotos.length);
-
-  //   // Subir imágenes a Cloudinary si son base64
-  //   let imagenesData = [];
-
-  //   if (fotos && fotos.length > 0) {
-  //     try {
-  //       const imagenesSubidas = await Promise.all(
-  //         fotos.map(async (imagen) => {
-  //           if (imagen.startsWith('data:image')) {
-  //             const url = await this.cloudinaryService.subirImagen(imagen);
-  //             return { url }; // Prisma necesita un objeto { url: '...' }
-  //           }
-  //           return { url: imagen }; // Si ya es una URL, se mantiene igual
-  //         }),
-  //       );
-
-  //       imagenesData = imagenesSubidas;
-  //       console.log('Las imagenes subidas a cloudinary son: ', imagenesData);
-  //     } catch (error) {
-  //       console.error('❌ Error al subir imágenes:', error);
-  //       throw new InternalServerErrorException('Error al procesar imágenes');
-  //     }
-  //   }
-
-  //   try {
-  //     const product = await this.prisma.producto.create({
-  //       data: {
-  //         nombre,
-  //         descripcion,
-  //         precio: precioInt,
-  //         codigoProducto,
-  //         categorias: {
-  //           create: categoriaIds.map((categoriaId) => ({
-  //             categoria: { connect: { id: categoriaId } },
-  //           })),
-  //         },
-  //         imagenes: {
-  //           create: imagenesData.map((imagen) => ({
-  //             url: imagen.url, // Aquí se aseguran de que se incluya el campo 'url'
-  //             productoId: 0, // Inicializamos productoId en 0, se ajustará luego
-  //           })),
-  //         },
-  //       },
-  //       include: {
-  //         categorias: true,
-  //         imagenes: true, // Para devolver las imágenes junto con el producto
-  //       },
-  //     });
-
-  //     // Después de la creación del producto, actualizamos las imágenes con el productoId correcto
-  //     const updatedImagenes = await this.prisma.imagenProducto.updateMany({
-  //       where: { productoId: 0 }, // Filtramos las imágenes que se crearon con productoId = 0
-  //       data: { productoId: product.id }, // Actualizamos con el ID del producto creado
-  //     });
-
-  //     console.log('✅ Producto creado con imágenes asociadas:', product);
-  //     return product;
-  //   } catch (error) {
-  //     console.error('❌ Error al crear producto:', error);
-  //     throw new InternalServerErrorException('Error al crear producto');
-  //   }
-  // }
-
   async createProduct(createProductDto: CreateProductDto) {
-    const { nombre, descripcion, precio, categoriaIds, codigoProducto, fotos } =
-      createProductDto;
+    const {
+      nombre,
+      descripcion,
+      precio,
+      categoriaIds,
+      codigoProducto,
+      precioCosto,
+      fotos,
+    } = createProductDto;
 
-    let precioInt = Number(precio);
+    const precioInt = Number(precio);
 
-    console.log('El numero de fotos llegando es: ', fotos.length);
+    console.log('El número de fotos llegando es:', fotos.length);
 
-    // Subir imágenes a Cloudinary si son base64
+    // 1. Subir imágenes a Cloudinary si son base64
     let imagenesData = [];
 
     if (fotos && fotos.length > 0) {
@@ -137,61 +50,68 @@ export class ProductService {
           fotos.map(async (imagen) => {
             if (imagen.startsWith('data:image')) {
               const url = await this.cloudinaryService.subirImagen(imagen);
-              return { url }; // Prisma necesita un objeto { url: '...' }
+              return { url };
             }
-            return { url: imagen }; // Si ya es una URL, se mantiene igual
+            return { url: imagen }; // Ya es URL
           }),
         );
 
         imagenesData = imagenesSubidas;
-        console.log('Las imagenes subidas a cloudinary son: ', imagenesData);
+        console.log('✅ Imágenes subidas a Cloudinary:', imagenesData);
       } catch (error) {
         console.error('❌ Error al subir imágenes:', error);
-        throw new InternalServerErrorException('Error al procesar imágenes');
+        throw new InternalServerErrorException('Error al subir imágenes');
       }
     }
 
+    // 2. Ejecutar todo en una transacción
     try {
-      // Primero, creamos el producto sin las imágenes
-      const product = await this.prisma.producto.create({
-        data: {
-          nombre,
-          descripcion,
-          precio: precioInt,
-          codigoProducto,
-          categorias: {
-            create: categoriaIds.map((categoriaId) => ({
-              categoria: { connect: { id: categoriaId } },
-            })),
+      return await this.prisma.$transaction(async (tx) => {
+        // Crear el producto con sus categorías
+        const product = await tx.producto.create({
+          data: {
+            nombre,
+            descripcion,
+            precio: precioInt,
+            codigoProducto,
+            costo: Number(precioCosto),
+            categorias: {
+              create: categoriaIds.map((categoriaId) => ({
+                categoria: { connect: { id: categoriaId } },
+              })),
+            },
           },
-        },
-        include: {
-          categorias: true,
-        },
+          include: {
+            categorias: true,
+          },
+        });
+
+        console.log('✅ Producto creado:', product);
+
+        // Asociar las imágenes con el producto
+        if (imagenesData.length > 0) {
+          const imagenesConProductoId = imagenesData.map((imagen) => ({
+            url: imagen.url,
+            productoId: product.id,
+          }));
+
+          await tx.imagenProducto.createMany({
+            data: imagenesConProductoId,
+          });
+
+          return {
+            ...product,
+            imagenes: imagenesConProductoId,
+          };
+        }
+
+        return {
+          ...product,
+          imagenes: [],
+        };
       });
-
-      console.log('Producto creado:', product);
-
-      // Después de la creación del producto, asociamos las imágenes con el producto creado
-      const imagenesConProductoId = imagenesData.map((imagen) => ({
-        url: imagen.url,
-        productoId: product.id, // Usamos el ID del producto recién creado
-      }));
-
-      // Ahora creamos las imágenes con el `productoId` correcto
-      const imagenesCreada = await this.prisma.imagenProducto.createMany({
-        data: imagenesConProductoId,
-      });
-
-      console.log('Imágenes asociadas al producto:', imagenesCreada);
-
-      // Devuelves el producto con las imágenes asociadas
-      return {
-        ...product,
-        imagenes: imagenesConProductoId,
-      };
     } catch (error) {
-      console.error('❌ Error al crear producto:', error);
+      console.error('❌ Error al crear producto o asociar imágenes:', error);
       throw new InternalServerErrorException('Error al crear producto');
     }
   }
@@ -277,56 +197,90 @@ export class ProductService {
 
   async updateOneProduct(id: number, updateProductDto: UpdateProductDto) {
     try {
-      // Si no se envían categoriasIds, solo actualiza los otros campos
-      if (
-        !updateProductDto.categoriasIds ||
-        updateProductDto.categoriasIds.length === 0
-      ) {
-        const product = await this.prisma.producto.update({
-          where: { id },
-          data: {
-            codigoProducto: updateProductDto.codigoProducto,
-            nombre: updateProductDto.nombre,
-            descripcion: updateProductDto.descripcion,
-            precio: updateProductDto.precio,
-          },
-        });
-        return product;
-      } else {
-        // Verifica que las categorías existan en la base de datos
-        const categoriasExistentes = await this.prisma.categoria.findMany({
-          where: { id: { in: updateProductDto.categoriasIds } },
-          select: { id: true },
-        });
+      return await this.prisma.$transaction(async (tx) => {
+        const {
+          codigoProducto,
+          nombre,
+          descripcion,
+          precio,
+          precioCosto,
+          categoriasIds,
+        } = updateProductDto;
 
-        if (
-          categoriasExistentes.length !== updateProductDto.categoriasIds.length
-        ) {
-          throw new NotFoundException('Una o más categorías no existen.');
-        }
+        // 🔁 Verifica si hay categorías nuevas
+        if (categoriasIds && categoriasIds.length > 0) {
+          const categoriasExistentes = await tx.categoria.findMany({
+            where: { id: { in: categoriasIds } },
+            select: { id: true },
+          });
 
-        // Actualiza el producto con las nuevas categorías
-        const product = await this.prisma.producto.update({
-          where: { id },
-          data: {
-            codigoProducto: updateProductDto.codigoProducto,
-            nombre: updateProductDto.nombre,
-            descripcion: updateProductDto.descripcion,
-            precio: updateProductDto.precio,
-            categorias: {
-              deleteMany: {}, // elimina todas las relaciones existentes
-              create: updateProductDto.categoriasIds.map((catId) => ({
-                categoria: {
-                  connect: { id: catId },
-                },
-              })),
+          if (categoriasExistentes.length !== categoriasIds.length) {
+            throw new NotFoundException('Una o más categorías no existen.');
+          }
+
+          // 🧼 Elimina relaciones actuales
+          await tx.productoCategoria.deleteMany({
+            where: { productoId: id },
+          });
+
+          // 🔧 Actualiza producto con nuevas relaciones
+          const productoActualizado = await tx.producto.update({
+            where: { id },
+            data: {
+              codigoProducto,
+              nombre,
+              descripcion,
+              precio,
+              costo: Number(precioCosto),
+              categorias: {
+                create: categoriasIds.map((catId) => ({
+                  categoria: { connect: { id: catId } },
+                })),
+              },
             },
-          },
-        });
-        return product;
-      }
+            include: {
+              categorias: {
+                include: {
+                  categoria: true,
+                },
+              },
+            },
+          });
+
+          console.log(
+            '✅ Producto actualizado con categorías:',
+            productoActualizado,
+          );
+          return productoActualizado;
+        } else {
+          // 🔧 Solo se actualizan campos básicos, no categorías
+          const productoActualizado = await tx.producto.update({
+            where: { id },
+            data: {
+              codigoProducto,
+              nombre,
+              descripcion,
+              precio,
+              costo: Number(precioCosto),
+            },
+            include: {
+              categorias: {
+                include: {
+                  categoria: true,
+                },
+              },
+            },
+          });
+
+          console.log(
+            '✅ Producto actualizado (sin cambio de categorías):',
+            productoActualizado,
+          );
+          return productoActualizado;
+        }
+      });
     } catch (error) {
-      console.log(error);
+      console.error('❌ Error al actualizar producto:', error);
       throw new InternalServerErrorException('Error al actualizar producto');
     }
   }
@@ -439,5 +393,87 @@ export class ProductService {
     const borradoImage = await this.cloudinaryService.BorrarImagen(publicId);
     console.log('La imagen borrada es: ', borradoImage);
     return borradoImage;
+  }
+
+  //CARGA MASIVA
+  async loadCSVandImportProducts(filePath: string, dryRun = false) {
+    const results: any[] = [];
+
+    const stream = createReadStream(filePath).pipe(csv());
+    for await (const row of stream) {
+      results.push(row);
+    }
+
+    this.logger.log(`Se leyeron ${results.length} productos del CSV.`);
+
+    for (const [index, row] of results.slice(0, 500).entries()) {
+      const nombre = row['Nombre']?.trim();
+      const codigoProducto = row['Codidgo']?.trim();
+      const precio = parseFloat(row['Precio']) || 0;
+      const costo = parseFloat(row['Costo']) || 0;
+      const cantidad = parseFloat(row['Cantidad']) || 0;
+      const categoriaNombre = row['Categoria']?.trim() || 'Sin categoría';
+
+      if (!nombre || !codigoProducto || !precio) {
+        this.logger.warn(`Fila ${index + 1} ignorada por datos incompletos.`);
+        continue;
+      }
+
+      try {
+        let categoria = await this.prisma.categoria.findFirst({
+          where: { nombre: categoriaNombre },
+        });
+
+        if (!categoria) {
+          categoria = await this.prisma.categoria.create({
+            data: { nombre: categoriaNombre },
+          });
+          this.logger.log(`✅ Categoría creada: ${categoria.nombre}`);
+        }
+
+        if (dryRun) {
+          this.logger.log(`[DryRun] Producto listo para crear: ${nombre}`);
+          continue;
+        }
+
+        const productoCreado = await this.prisma.producto.create({
+          data: {
+            nombre,
+            descripcion: nombre,
+            codigoProducto,
+            precio,
+            costo,
+            categorias: {
+              create: [{ categoria: { connect: { id: categoria.id } } }],
+            },
+          },
+          include: {
+            categorias: { include: { categoria: true } },
+          },
+        });
+
+        this.logger.log(`✅ Producto creado: ${productoCreado.nombre}`);
+
+        // Crear el stock inicial si la cantidad es válida
+        if (cantidad > 0) {
+          await this.prisma.stock.create({
+            data: {
+              productoId: productoCreado.id,
+              cantidad,
+              proveedorId: 1, // Puedes modificar esto si tienes un proveedor por defecto
+              costoTotal: cantidad * costo,
+            },
+          });
+
+          this.logger.log(
+            `📦 Stock inicial creado para: ${productoCreado.nombre}, cantidad: ${cantidad}`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(`❌ Error en fila ${index + 1}: ${error.message}`);
+      }
+    }
+
+    this.logger.log('📦 Importación de productos finalizada.');
   }
 }

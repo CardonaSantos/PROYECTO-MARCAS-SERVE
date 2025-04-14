@@ -14,6 +14,8 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
+import { join } from 'path';
+
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -22,11 +24,6 @@ export class ProductController {
   async create(@Body() createProductDto: CreateProductDto) {
     return await this.productService.createProduct(createProductDto);
   }
-
-  // @Get()
-  // async findAll() {
-  //   return await this.productService.findAllProducts();
-  // }
 
   @Get()
   async findAll(@Query('page') page = '1', @Query('limit') limit = '10') {
@@ -38,6 +35,12 @@ export class ProductController {
   @Get('/get-product-to-inventary')
   async findAllProductToInventary() {
     return await this.productService.findAllProductToInventary();
+  }
+
+  @Get('/carga-masiva')
+  async makeCargaMasiva() {
+    const ruta = join(process.cwd(), 'src', 'assets', 'ProductosCb.csv');
+    return await this.productService.loadCSVandImportProducts(ruta);
   }
 
   @Get(':id')

@@ -8,6 +8,10 @@ import {
 } from 'class-validator';
 
 export class CreateCustomerDto {
+  @IsNumber()
+  @IsOptional() // Descuento inicial es opcional
+  descuentoInicial?: number; // Descuento inicial es opcional
+
   @IsString()
   @IsNotEmpty()
   nombre: string;
