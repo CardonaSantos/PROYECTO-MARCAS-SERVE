@@ -25,6 +25,23 @@ export class ProductController {
     return await this.productService.createProduct(createProductDto);
   }
 
+  @Get('/search')
+  async searchProducts(
+    @Query('query') query: string,
+    @Query('categoria') categoria: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+  ) {
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    return await this.productService.searchProducts(
+      query,
+      categoria,
+      pageNumber,
+      limitNumber,
+    );
+  }
+
   @Get()
   async findAll(@Query('page') page = '1', @Query('limit') limit = '10') {
     const pageNumber = parseInt(page, 10);
@@ -39,7 +56,12 @@ export class ProductController {
 
   @Get('/carga-masiva')
   async makeCargaMasiva() {
-    const ruta = join(process.cwd(), 'src', 'assets', 'ProductosCb.csv');
+    const ruta = join(
+      process.cwd(),
+      'src',
+      'assets',
+      'ProductosCaballeros.csv',
+    );
     return await this.productService.loadCSVandImportProducts(ruta);
   }
 

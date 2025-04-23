@@ -406,7 +406,7 @@ export class ProductService {
 
     this.logger.log(`Se leyeron ${results.length} productos del CSV.`);
 
-    for (const [index, row] of results.slice(0, 500).entries()) {
+    for (const [index, row] of results.entries()) {
       const nombre = row['Nombre']?.trim();
       const codigoProducto = row['Codidgo']?.trim();
       const precio = parseFloat(row['Precio']) || 0;
@@ -452,7 +452,7 @@ export class ProductService {
           },
         });
 
-        this.logger.log(`✅ Producto creado: ${productoCreado.nombre}`);
+        // this.logger.log(`✅ Producto creado: ${productoCreado.nombre}`);
 
         // Crear el stock inicial si la cantidad es válida
         if (cantidad > 0) {
@@ -465,9 +465,9 @@ export class ProductService {
             },
           });
 
-          this.logger.log(
-            `📦 Stock inicial creado para: ${productoCreado.nombre}, cantidad: ${cantidad}`,
-          );
+          // this.logger.log(
+          //   `📦 Stock inicial creado para: ${productoCreado.nombre}, cantidad: ${cantidad}`,
+          // );
         }
       } catch (error) {
         this.logger.error(`❌ Error en fila ${index + 1}: ${error.message}`);
@@ -475,5 +475,78 @@ export class ProductService {
     }
 
     this.logger.log('📦 Importación de productos finalizada.');
+  }
+
+  //busqueda por params nombre y codigo:
+  async searchProducts(
+    query: string,
+    categoria: string,
+    page: number,
+    limit: number,
+  ) {
+    console.log('los datos son: ', query, categoria, page, limit);
+
+    const skip = (page - 1) * limit;
+
+    const conditions: any[] = [
+      {
+        OR: [
+          { nombre: { contains: query, mode: 'insensitive' } },
+          { codigoProducto: { contains: query.trim(), mode: 'insensitive' } },
+        ],
+      },
+    ];
+
+    if (categoria && categoria !== 'Todas') {
+      conditions.push({
+        categorias: {
+          some: {
+            categoria: {
+              nombre: {
+                equals: categoria,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      });
+    }
+
+    const whereCondition = {
+      AND: conditions,
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.producto.findMany({
+        where: whereCondition,
+        include: {
+          categorias: {
+            include: {
+              categoria: true,
+            },
+          },
+          stock: true,
+          imagenes: true,
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          nombre: 'asc',
+        },
+      }),
+      this.prisma.producto.count({
+        where: whereCondition,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    console.log('Los productos encontrados son: ', products);
+
+    return {
+      products,
+      total,
+      totalPages,
+      currentPage: page,
+    };
   }
 }
