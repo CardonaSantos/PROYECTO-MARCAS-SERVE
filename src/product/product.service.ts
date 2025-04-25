@@ -195,6 +195,44 @@ export class ProductService {
     }
   }
 
+  async limpiarProductos() {
+    const productos = await this.prisma.producto.findMany({
+      select: {
+        id: true,
+        nombre: true,
+        codigoProducto: true,
+      },
+    });
+
+    console.log(`Corrigiendo ${productos.length} productos...`);
+
+    const updates = productos
+      .map((producto) => {
+        const nombreLimpio = producto.nombre.trim();
+        const codigoLimpio = producto.codigoProducto.trim();
+
+        if (
+          producto.nombre !== nombreLimpio ||
+          producto.codigoProducto !== codigoLimpio
+        ) {
+          return this.prisma.producto.update({
+            where: { id: producto.id },
+            data: {
+              nombre: nombreLimpio,
+              codigoProducto: codigoLimpio,
+            },
+          });
+        }
+        return null;
+      })
+      .filter(Boolean); // Eliminar los nulos (los que no necesitaban cambios)
+
+    // Hacer todas las actualizaciones en paralelo
+    await Promise.all(updates);
+
+    console.log('¡Productos limpiados exitosamente!');
+  }
+
   async updateOneProduct(id: number, updateProductDto: UpdateProductDto) {
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -484,15 +522,23 @@ export class ProductService {
     page: number,
     limit: number,
   ) {
-    console.log('los datos son: ', query, categoria, page, limit);
-
     const skip = (page - 1) * limit;
 
     const conditions: any[] = [
       {
         OR: [
-          { nombre: { contains: query, mode: 'insensitive' } },
-          { codigoProducto: { contains: query.trim(), mode: 'insensitive' } },
+          {
+            nombre: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
+          {
+            codigoProducto: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          },
         ],
       },
     ];
@@ -512,9 +558,7 @@ export class ProductService {
       });
     }
 
-    const whereCondition = {
-      AND: conditions,
-    };
+    const whereCondition = conditions.length > 0 ? { AND: conditions } : {};
 
     const [products, total] = await Promise.all([
       this.prisma.producto.findMany({
@@ -540,7 +584,6 @@ export class ProductService {
     ]);
 
     const totalPages = Math.ceil(total / limit);
-    console.log('Los productos encontrados son: ', products);
 
     return {
       products,

@@ -64,6 +64,10 @@ export class ProductController {
     );
     return await this.productService.loadCSVandImportProducts(ruta);
   }
+  // @Get('/formatear-productos-trim')
+  // async format() {
+  //   return await this.productService.limpiarProductos();
+  // }
 
   @Get(':id')
   async findOne(@Param('id', ParseIntPipe) id: number) {
