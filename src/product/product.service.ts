@@ -523,7 +523,8 @@ export class ProductService {
     limit: number,
   ) {
     const skip = (page - 1) * limit;
-
+    // console.log('La query llegano es: ', query, 'x');
+    console.log('Query recibida:', JSON.stringify(query)); // 👀 Ver formato exacto
     const conditions: any[] = [
       {
         OR: [
@@ -584,6 +585,7 @@ export class ProductService {
     ]);
 
     const totalPages = Math.ceil(total / limit);
+    console.log('El producto encontrado es: ', products);
 
     return {
       products,
