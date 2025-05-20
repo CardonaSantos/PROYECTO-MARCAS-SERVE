@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
@@ -16,50 +17,40 @@ export class AttendanceService {
   ) {}
 
   async createCheckIn(createAttendanceDto: CreateAttendanceDto) {
+    // 1. Asegurarse de recibir y parsear el ID correctamente
+    const userId = Number(createAttendanceDto.usuarioId);
+    if (isNaN(userId)) {
+      throw new BadRequestException('El campo usuarioId debe ser un número');
+    }
+
+    // 2. Comprobar que el usuario existe
+    const exists = await this.prisma.usuario.count({ where: { id: userId } });
+    if (!exists) {
+      throw new NotFoundException(`No existe usuario con id ${userId}`);
+    }
+
     try {
-      // Convertimos la fecha de hoy a formato "YYYY-MM-DD"
-      const today = new Date().toISOString().split('T')[0];
-
-      // Buscamos si ya existe un registro de entrada para el mismo usuario en la fecha de hoy
-      const entradaDeHoy = await this.prisma.asistencia.findFirst({
-        where: {
-          usuarioId: createAttendanceDto.usuarioId,
-          fecha: {
-            equals: today + 'T00:00:00.000Z', // Comparamos solo con la fecha
-          },
-        },
-      });
-
-      if (entradaDeHoy) {
-        console.log('Ya hay una marca de entrada');
-
-        throw new BadRequestException('Ya se ha marcado la entrada de hoy');
-      }
-
-      // SOLO MARCAMOS LA ENTRADA
+      // 3. Crear la asistencia sin más checks de “un solo registro al día”
       const nuevaAsistencia = await this.prisma.asistencia.create({
         data: {
-          fecha: today + 'T00:00:00.000Z', // Guardamos la fecha como "YYYY-MM-DDT00:00:00.000Z"
+          fecha: createAttendanceDto.entrada ?? new Date(),
           entrada: createAttendanceDto.entrada,
-          usuarioId: createAttendanceDto.usuarioId,
+          usuarioId: userId,
         },
       });
 
-      const userNotification = await this.prisma.usuario.findUnique({
-        where: {
-          id: nuevaAsistencia.usuarioId,
-        },
+      // 4. Enviar notificación
+      const user = await this.prisma.usuario.findUnique({
+        where: { id: userId },
       });
-
-      //LLAMAR AL SERVICIO DE NOTIFICACIONES LIGADO AL GATEWAY
       await this.notificationService.createNotification({
-        mensaje: `El usuario ${userNotification.nombre} ha registrado su entrada`,
-        remitenteId: nuevaAsistencia.usuarioId,
+        mensaje: `El usuario ${user.nombre} ha registrado su entrada`,
+        remitenteId: userId,
       });
 
       return nuevaAsistencia;
     } catch (error) {
-      console.log(error);
+      console.error(error);
       throw new InternalServerErrorException('Error al crear asistencia');
     }
   }
