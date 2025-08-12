@@ -42,4 +42,9 @@ export class CreditoController {
   deletePaymentRegist(@Body() deletePaymentDto: createPaymentDto) {
     return this.creditoService.deletePaymetCredit(deletePaymentDto);
   }
+
+  @Delete('/delete-all-creditos')
+  deleteAllCreditos() {
+    return this.creditoService.deleteAllCreditos();
+  }
 }

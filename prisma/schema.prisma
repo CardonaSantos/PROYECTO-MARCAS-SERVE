@@ -412,8 +412,6 @@ model Municipio {
   clientes       Cliente[]    // Relación con los clientes
 }
 
-
-
 model Usuario {
   id                     Int                    @id @default(autoincrement())
   nombre                 String
@@ -448,20 +446,20 @@ model Credito {
   clienteId           Int?
   empresaId           Int?
   empresa             Empresa?     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  montoTotal          Float        // Monto total del crédito antes de interés
-  cuotaInicial        Float        // Monto inicial pagado
-  totalPagado         Float        @default(0) // Total pagado hasta ahora
-  numeroCuotas        Int          // Número total de cuotas
+  montoTotal          Float?        // Monto total del crédito antes de interés
+  cuotaInicial        Float?        // Monto inicial pagado
+  totalPagado         Float?        @default(0) // Total pagado hasta ahora
+  numeroCuotas        Int?          // Número total de cuotas
   estado              EstadoCredito // Enum para saber si está activo, cerrado, etc.
-  interes             Float        // Nivel de interés en porcentaje (ej: 10 para 10%)
-  montoConInteres     Float        // Monto total después de aplicar el interés
+  interes             Float?        // Nivel de interés en porcentaje (ej: 10 para 10%)
+  montoConInteres     Float?        // Monto total después de aplicar el interés
   montoTotalConInteres Float?      // Monto total del crédito después de interés
-  saldoPendiente      Float        // Saldo restante después del pago inicial
-  fechaInicio         DateTime     @default(now()) // Fecha en que inició el crédito
-  diasEntrePagos      Float        //NUEVA PROPIEDAD
-  fechaContrato       DateTime     @default(now()) // Fecha del contrato
-  dpi                 String       // DPI del cliente
-  testigos            Json         // Testigos en formato JSON
+  saldoPendiente      Float?        // Saldo restante después del pago inicial
+  fechaInicio         DateTime?     @default(now()) // Fecha en que inició el 
+  fechaFin            DateTime?     
+  diasEntrePagos      Float?        //NUEVA PROPIEDAD
+  fechaContrato       DateTime?     @default(now()) // Fecha del contrato
+  dpi                 String?       // DPI del cliente
   comentario          String?      // Observaciones del crédito
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt

@@ -15,6 +15,24 @@ import * as csv from 'csv-parser';
 import { createReadStream } from 'fs';
 import { promisify } from 'util';
 import * as path from 'path';
+import * as currency from 'currency.js';
+//  function parseCurrencyValue(value: string | number | undefined): number {
+//   if (value === undefined || value === null) return 0;
+//   // currency() acepta tanto string como number
+//   return currency(value, {
+//     precision: 2,      // 2 decimales
+//     separator: '.',    // separador decimal
+//     decimal: ',',      // separador de miles en input
+//   }).value;
+// }
+
+export function parseCurrencyValue(value: string | number | undefined): number {
+  if (value === undefined || value === null) return 0;
+  return currency(value, {
+    separator: ',', // miles
+    decimal: '.', // decimales
+  }).value;
+}
 
 @Injectable()
 export class ProductService {
@@ -447,9 +465,10 @@ export class ProductService {
     for (const [index, row] of results.entries()) {
       const nombre = row['Nombre']?.trim();
       const codigoProducto = row['Codidgo']?.trim();
-      const precio = parseFloat(row['Precio']) || 0;
-      const costo = parseFloat(row['Costo']) || 0;
-      const cantidad = parseFloat(row['Cantidad']) || 0;
+      ///
+      const precio = parseCurrencyValue(row['Precio']) || 0;
+      const costo = parseCurrencyValue(row['Costo']) || 0;
+      const cantidad = parseCurrencyValue(row['Cantidad']) || 0;
       const categoriaNombre = row['Categoria']?.trim() || 'Sin categoría';
 
       if (!nombre || !codigoProducto || !precio) {
